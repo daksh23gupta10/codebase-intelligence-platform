@@ -13,7 +13,8 @@ export default function CountUp({
   startWhen = true,
   separator = '',
   onStart,
-  onEnd
+  onEnd,
+  onUpdate
 }) {
   const ref = useRef(null);
   const motionValue = useMotionValue(direction === 'down' ? to : from);
@@ -93,6 +94,9 @@ export default function CountUp({
     const unsubscribe = springValue.on('change', latest => {
       if (ref.current) {
         ref.current.textContent = formatValue(latest);
+      }
+      if (typeof onUpdate === 'function') {
+        onUpdate(latest);
       }
     });
 

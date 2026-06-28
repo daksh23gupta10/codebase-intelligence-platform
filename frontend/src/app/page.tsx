@@ -10,7 +10,7 @@ import TextPressure from '@/components/TextPressure';
 export default function Home() {
   const [query, setQuery] = useState('');
   const [chatHistory, setChatHistory] = useState([
-    { role: 'assistant', content: 'Hello! I am your Codebase Intelligence AI. I have ingested the repository and I am ready to answer your questions.' }
+    { role: 'assistant', content: "Hello, I'm your Codebase AI. Add your repository file." }
   ]);
   const [loading, setLoading] = useState(false);
   const [loginStatus, setLoginStatus] = useState('unauthenticated'); // 'unauthenticated' | 'welcoming' | 'authenticated'
@@ -24,6 +24,42 @@ export default function Home() {
   const [ingestStatus, setIngestStatus] = useState('');
   const [copiedIndex, setCopiedIndex] = useState(null);
   const fileInputRef = React.useRef(null);
+  const passwordInputRef = React.useRef(null);
+  const progressBarRef = React.useRef(null);
+  const [isMounted, setIsMounted] = useState(false);
+  const [loadingComplete, setLoadingComplete] = useState(false);
+
+  // Keyboard shortcut to enter workspace
+  useEffect(() => {
+    if (loginStatus === 'welcoming' && loadingComplete) {
+      const handleKeyDown = (e) => {
+        if (e.key === ' ' || e.code === 'Space') {
+          e.preventDefault();
+          setLoginStatus('authenticated');
+        }
+      };
+      window.addEventListener('keydown', handleKeyDown);
+      return () => window.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [loginStatus, loadingComplete]);
+
+  // Restore login state on page load
+  useEffect(() => {
+    setIsMounted(true);
+    const savedStatus = localStorage.getItem('loginStatus');
+    if (savedStatus === 'authenticated') {
+      setLoginStatus('authenticated');
+    }
+  }, []);
+
+  // Save login state on change
+  useEffect(() => {
+    if (loginStatus === 'authenticated') {
+      localStorage.setItem('loginStatus', 'authenticated');
+    } else if (loginStatus === 'unauthenticated') {
+      localStorage.removeItem('loginStatus');
+    }
+  }, [loginStatus]);
 
   useEffect(() => {
     if (loginStatus === 'authenticated') {
@@ -108,6 +144,10 @@ export default function Home() {
     }
   };
 
+  if (!isMounted) {
+    return <div className="min-h-screen bg-black" />;
+  }
+
   return (
     <ClickSpark sparkColor='#06B6D4' sparkSize={12} sparkRadius={20} sparkCount={10} duration={600}>
       <main className="relative w-full h-screen bg-[#03010A] text-white overflow-hidden font-sans select-none">
@@ -144,27 +184,53 @@ export default function Home() {
           >
             <div className="p-8 flex flex-col w-full h-full">
               <div className="text-center mb-8">
-              <div className="w-14 h-14 mx-auto rounded-full bg-gradient-to-tr from-indigo-500 to-cyan-400 flex items-center justify-center shadow-[0_0_20px_rgba(6,182,212,0.6)] mb-5 group-hover:scale-110 transition-transform duration-500">
-                <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>
+              <div className="relative w-14 h-14 mx-auto rounded-full bg-gradient-to-tr from-indigo-500 to-cyan-400 shadow-[0_0_20px_rgba(6,182,212,0.6)] mb-5 group-hover:scale-110 transition-transform duration-500">
+                <svg className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="18" r="2.5"/>
+                  <circle cx="6" cy="6" r="2.5"/>
+                  <circle cx="18" cy="6" r="2.5"/>
+                  <path d="M18 8.5v1.5a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V8.5"/>
+                  <path d="M12 12v3.5"/>
+                </svg>
               </div>
               <h2 className="text-2xl font-bold tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-indigo-100 to-cyan-100 uppercase">Codebase AI</h2>
               <p className="text-gray-400 text-sm mt-2">Sign in to access enterprise intelligence</p>
             </div>
             <form noValidate onSubmit={(e) => { 
               e.preventDefault(); 
-              const newErrors = { email: !email.trim(), password: !password.trim() };
+              const newErrors = { 
+                email: !email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email), 
+                password: !password.trim() 
+              };
               setLoginErrors(newErrors);
               if (newErrors.email || newErrors.password) return;
               
+              setLoadingComplete(false);
               setLoginStatus('welcoming');
-              setTimeout(() => setLoginStatus('authenticated'), 2500); 
             }} className="flex flex-col gap-5">
               <div className="relative">
                 <label className="block text-[10px] text-cyan-300/80 mb-1.5 ml-1 uppercase tracking-[0.2em] font-semibold">Work Email</label>
                 <div className="relative">
-                  <input type="email" value={email} onChange={(e) => { setEmail(e.target.value); if(loginErrors.email) setLoginErrors({...loginErrors, email: false}); }} placeholder="name@company.com" className={`w-full bg-black/40 backdrop-blur-md border ${loginErrors.email ? 'border-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.2)]' : 'border-white/10 focus:border-cyan-400/50 focus:shadow-[0_0_20px_rgba(6,182,212,0.2)]'} rounded-xl px-4 py-3.5 text-white placeholder-gray-500 focus:outline-none transition-all duration-300 hover:bg-white/10 focus:-translate-y-0.5 pr-10`} />
+                  <input 
+                    type="email" 
+                    value={email} 
+                    onChange={(e) => { setEmail(e.target.value); if(loginErrors.email) setLoginErrors({...loginErrors, email: false}); }} 
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const isValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.target.value);
+                        if (!isValid) {
+                          setLoginErrors(prev => ({ ...prev, email: true }));
+                        } else {
+                          passwordInputRef.current?.focus();
+                        }
+                      }
+                    }}
+                    placeholder="name@company.com" 
+                    className={`w-full bg-black/40 backdrop-blur-md border ${loginErrors.email ? 'border-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.2)]' : 'border-white/10 focus:border-cyan-400/50 focus:shadow-[0_0_20px_rgba(6,182,212,0.2)]'} rounded-xl px-4 py-3.5 text-white placeholder-gray-500 focus:outline-none transition-all duration-300 hover:bg-white/10 focus:-translate-y-0.5 pr-10`} 
+                  />
                   {loginErrors.email && (
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2 text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.8)] animate-in fade-in zoom-in duration-300" title="Email is required">
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.8)] animate-in fade-in zoom-in duration-300" title="Valid email is required">
                       <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                     </div>
                   )}
@@ -173,7 +239,7 @@ export default function Home() {
               <div className="relative">
                 <label className="block text-[10px] text-cyan-300/80 mb-1.5 ml-1 uppercase tracking-[0.2em] font-semibold">Password</label>
                 <div className="relative">
-                  <input type="password" value={password} onChange={(e) => { setPassword(e.target.value); if(loginErrors.password) setLoginErrors({...loginErrors, password: false}); }} placeholder="••••••••" className={`w-full bg-black/40 backdrop-blur-md border ${loginErrors.password ? 'border-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.2)]' : 'border-white/10 focus:border-cyan-400/50 focus:shadow-[0_0_20px_rgba(6,182,212,0.2)]'} rounded-xl px-4 py-3.5 text-white placeholder-gray-500 focus:outline-none transition-all duration-300 hover:bg-white/10 focus:-translate-y-0.5 pr-10`} />
+                  <input ref={passwordInputRef} type="password" value={password} onChange={(e) => { setPassword(e.target.value); if(loginErrors.password) setLoginErrors({...loginErrors, password: false}); }} placeholder="••••••••" className={`w-full bg-black/40 backdrop-blur-md border ${loginErrors.password ? 'border-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.2)]' : 'border-white/10 focus:border-cyan-400/50 focus:shadow-[0_0_20px_rgba(6,182,212,0.2)]'} rounded-xl px-4 py-3.5 text-white placeholder-gray-500 focus:outline-none transition-all duration-300 hover:bg-white/10 focus:-translate-y-0.5 pr-10`} />
                   {loginErrors.password && (
                     <div className="absolute right-3 top-1/2 -translate-y-1/2 text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.8)] animate-in fade-in zoom-in duration-300" title="Password is required">
                       <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
@@ -189,9 +255,18 @@ export default function Home() {
           </BorderGlow>
       </div>
 
-      <div className={`absolute inset-0 z-10 flex flex-col items-center justify-center h-full w-full p-4 transition-all duration-1000 ease-in-out ${loginStatus === 'welcoming' ? 'opacity-100 pointer-events-auto scale-100' : (loginStatus === 'unauthenticated' ? 'opacity-0 pointer-events-none scale-75' : 'opacity-0 pointer-events-none scale-150')}`}>
-          <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-indigo-500 to-cyan-400 flex items-center justify-center shadow-[0_0_40px_rgba(6,182,212,0.6)] mb-8 animate-pulse">
-            <svg className="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>
+      <div 
+        onClick={() => { if (loadingComplete) setLoginStatus('authenticated'); }}
+        className={`absolute inset-0 z-10 flex flex-col items-center justify-center h-full w-full p-4 transition-all duration-1000 ease-in-out ${loadingComplete ? 'cursor-pointer' : ''} ${loginStatus === 'welcoming' ? 'opacity-100 pointer-events-auto scale-100' : (loginStatus === 'unauthenticated' ? 'opacity-0 pointer-events-none scale-75' : 'opacity-0 pointer-events-none scale-150')}`}
+      >
+          <div className="relative w-20 h-20 mx-auto rounded-full bg-gradient-to-tr from-indigo-500 to-cyan-400 shadow-[0_0_40px_rgba(6,182,212,0.6)] mb-8 animate-pulse">
+            <svg className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="18" r="2.5"/>
+              <circle cx="6" cy="6" r="2.5"/>
+              <circle cx="18" cy="6" r="2.5"/>
+              <path d="M18 8.5v1.5a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V8.5"/>
+              <path d="M12 12v3.5"/>
+            </svg>
           </div>
           <div className="w-full max-w-3xl h-16 md:h-24 flex items-center justify-center mx-auto mb-6">
             <TextPressure
@@ -206,20 +281,45 @@ export default function Home() {
               minFontSize={36}
             />
           </div>
-          <div className="w-64 h-1.5 bg-white/10 rounded-full overflow-hidden relative shadow-[0_0_10px_rgba(6,182,212,0.3)]">
-            <div className="absolute inset-y-0 left-0 bg-gradient-to-r from-cyan-400 to-indigo-500 w-full origin-left animate-pulse"></div>
+          <div className="mt-4 mb-6 text-center">
+            <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+              <CountUp 
+                from={0} 
+                to={100} 
+                duration={2.5} 
+                className="text-5xl font-bold text-cyan-400 drop-shadow-[0_0_15px_rgba(6,182,212,0.5)] tabular-nums" 
+                startWhen={loginStatus === 'welcoming'}
+                onEnd={() => setLoadingComplete(true)}
+                onUpdate={(latest) => {
+                  if (progressBarRef.current) {
+                    progressBarRef.current.style.width = `${latest}%`;
+                  }
+                }}
+              />
+              <span className="text-5xl font-bold text-cyan-400 drop-shadow-[0_0_15px_rgba(6,182,212,0.5)]">%</span>
+            </div>
           </div>
-          <p className="text-cyan-300/80 text-xs mt-6 uppercase tracking-[0.3em] font-semibold animate-pulse">Initializing Interface...</p>
+
+          <div className="w-64 h-1.5 bg-white/10 rounded-full overflow-hidden relative shadow-[0_0_10px_rgba(6,182,212,0.3)] mb-4 mx-auto">
+            <div 
+              ref={progressBarRef}
+              className="absolute inset-y-0 left-0 bg-gradient-to-r from-cyan-400 to-indigo-500"
+              style={{ width: '0%' }}
+            ></div>
+          </div>
           
-          <div className="mt-6 flex justify-center items-baseline gap-1 w-full text-center">
-            <CountUp 
-              from={0} 
-              to={100} 
-              duration={2.5} 
-              className="text-4xl font-bold text-cyan-400 drop-shadow-[0_0_15px_rgba(6,182,212,0.5)]" 
-              startWhen={loginStatus === 'welcoming'}
-            />
-            <span className="text-2xl font-bold text-cyan-400 drop-shadow-[0_0_15px_rgba(6,182,212,0.5)]">%</span>
+          <div className="min-h-[6rem] flex flex-col items-center justify-start pt-2">
+            {!loadingComplete ? (
+              <p className="text-cyan-300/80 text-xs uppercase tracking-[0.3em] font-semibold animate-pulse">Initializing Interface...</p>
+            ) : (
+              <div 
+                className="flex flex-col items-center animate-in fade-in zoom-in duration-500 cursor-pointer group gap-3"
+                onClick={() => setLoginStatus('authenticated')}
+              >
+                <p className="text-emerald-400 text-xs uppercase tracking-[0.3em] font-semibold drop-shadow-[0_0_8px_rgba(52,211,153,0.6)]">Initialized successfully!</p>
+                <p className="text-cyan-400 text-[10px] uppercase tracking-[0.3em] font-bold animate-pulse drop-shadow-[0_0_10px_rgba(6,182,212,0.8)] group-hover:text-white transition-colors duration-300">PRESS SPACE OR CLICK TO ENTER</p>
+              </div>
+            )}
           </div>
       </div>
 
@@ -227,8 +327,14 @@ export default function Home() {
           {/* Futuristic Nav Bar */}
           <nav className="absolute top-0 w-full z-20 px-8 py-4 flex items-center justify-between backdrop-blur-md border-b border-white/5 bg-black/20 animate-in slide-in-from-top duration-500">
             <div className="flex items-center gap-3 cursor-pointer group">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-cyan-400 flex items-center justify-center shadow-[0_0_15px_rgba(6,182,212,0.5)] group-hover:shadow-[0_0_25px_rgba(6,182,212,0.8)] transition-shadow duration-300">
-                <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>
+              <div className="relative w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.5)] group-hover:shadow-[0_0_25px_rgba(6,182,212,0.8)] transition-shadow duration-300">
+                <svg className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="18" r="2.5"/>
+                  <circle cx="6" cy="6" r="2.5"/>
+                  <circle cx="18" cy="6" r="2.5"/>
+                  <path d="M18 8.5v1.5a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V8.5"/>
+                  <path d="M12 12v3.5"/>
+                </svg>
               </div>
               <span className="text-lg font-bold tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-indigo-100 to-cyan-100 uppercase group-hover:from-indigo-300 group-hover:to-cyan-300 transition-all duration-300">
                 Codebase AI
@@ -254,60 +360,71 @@ export default function Home() {
               </header>
 
               <div className="flex-1 overflow-y-auto px-2 py-6 md:px-4 flex flex-col gap-4 custom-scrollbar">
-                {chatHistory.map((msg, idx) => (
-                  <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} gap-1.5 items-start mb-2`}>
-                    
-                    {/* User Avatar before Bubble */}
-                    {msg.role === 'user' && (
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 grid place-items-center shrink-0 shadow-[0_0_10px_rgba(99,102,241,0.3)] mt-1">
-                        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                {chatHistory.map((msg, idx) => {
+                  const isBot = msg.role === 'assistant';
+                  
+                  if (isBot) {
+                    return (
+                      <div key={idx} className="flex w-full justify-start mb-4">
+                        <div className="flex items-start gap-2 max-w-[90%]">
+                          {/* Bot Avatar */}
+                          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-cyan-400 to-indigo-500 grid place-items-center shrink-0 shadow-[0_0_10px_rgba(6,182,212,0.3)] mt-1">
+                            <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                          </div>
+
+                          {/* Bot Bubble */}
+                          <div className="rounded-2xl p-4 backdrop-blur-md transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-lg relative group bg-indigo-600/30 border border-indigo-500/30 text-indigo-50 hover:shadow-indigo-500/20 rounded-tl-sm text-left">
+                            <button 
+                              onClick={() => {
+                                navigator.clipboard.writeText(msg.content);
+                                setCopiedIndex(idx);
+                                setTimeout(() => setCopiedIndex(null), 2000);
+                              }}
+                              className="absolute top-2 right-2 p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity"
+                              title="Copy to clipboard"
+                            >
+                              {copiedIndex === idx ? (
+                                <svg className="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
+                              ) : (
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                              )}
+                            </button>
+                            <p className="whitespace-pre-wrap">{msg.content}</p>
+                          </div>
+                        </div>
                       </div>
-                    )}
+                    );
+                  }
 
-                    <div className={`
-                      max-w-[80%] rounded-2xl p-4 backdrop-blur-md transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-lg relative group
-                      ${msg.role === 'assistant' 
-                        ? 'bg-indigo-600/30 border border-indigo-500/30 text-indigo-50 hover:shadow-indigo-500/20 rounded-tr-sm text-left' 
-                        : 'bg-white/5 border border-white/10 text-gray-200 hover:shadow-white/10 hover:bg-white/10 rounded-tl-sm text-left'
-                      }
-                    `}>
-                      {msg.role === 'assistant' && (
-                        <button 
-                          onClick={() => {
-                            navigator.clipboard.writeText(msg.content);
-                            setCopiedIndex(idx);
-                            setTimeout(() => setCopiedIndex(null), 2000);
-                          }}
-                          className="absolute top-2 right-2 p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity"
-                          title="Copy to clipboard"
-                        >
-                          {copiedIndex === idx ? (
-                            <svg className="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
-                          ) : (
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
-                          )}
-                        </button>
-                      )}
-                      <p className="whitespace-pre-wrap">{msg.content}</p>
+                  return (
+                    <div key={idx} className="flex w-full justify-end mb-4">
+                      <div className="flex items-start gap-2 max-w-[90%] ml-auto">
+                        {/* User Bubble */}
+                        <div className="rounded-2xl p-4 backdrop-blur-md transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-lg relative group bg-white/5 border border-white/10 text-gray-200 hover:shadow-white/10 hover:bg-white/10 rounded-tr-sm text-left">
+                          <p className="whitespace-pre-wrap">{msg.content}</p>
+                        </div>
+
+                        {/* User Avatar */}
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 grid place-items-center shrink-0 shadow-[0_0_10px_rgba(99,102,241,0.3)] mt-1">
+                          <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 12a4 4 0 100-8 4 4 0 000 8zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                          </svg>
+                        </div>
+                      </div>
                     </div>
-
-                    {/* Bot Avatar after Bubble */}
-                    {msg.role === 'assistant' && (
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-cyan-400 to-indigo-500 grid place-items-center shrink-0 shadow-[0_0_10px_rgba(6,182,212,0.3)] mt-1">
+                  );
+                })}
+                {loading && (
+                  <div className="flex w-full justify-start mb-4">
+                    <div className="flex items-start gap-2 max-w-[90%]">
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-cyan-400 to-indigo-500 flex items-center justify-center shrink-0 shadow-[0_0_10px_rgba(6,182,212,0.3)] mt-1">
                         <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
                       </div>
-                    )}
-                  </div>
-                ))}
-                {loading && (
-                  <div className="flex justify-start gap-1.5 items-start mb-2">
-                    <div className="max-w-[80%] rounded-2xl rounded-tr-sm p-4 backdrop-blur-md bg-indigo-600/30 border border-indigo-500/30 flex items-center gap-1.5 h-[52px]">
-                      <div className="w-2 h-2 bg-cyan-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                      <div className="w-2 h-2 bg-cyan-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                      <div className="w-2 h-2 bg-cyan-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
-                    </div>
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-cyan-400 to-indigo-500 grid place-items-center shrink-0 shadow-[0_0_10px_rgba(6,182,212,0.3)] mt-1">
-                      <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                      <div className="rounded-2xl rounded-tl-sm p-4 backdrop-blur-md bg-indigo-600/30 border border-indigo-500/30 flex items-center gap-1.5 h-[52px]">
+                        <div className="w-2 h-2 bg-cyan-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                        <div className="w-2 h-2 bg-cyan-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                        <div className="w-2 h-2 bg-cyan-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                      </div>
                     </div>
                   </div>
                 )}
