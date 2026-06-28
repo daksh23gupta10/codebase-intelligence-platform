@@ -5,10 +5,20 @@ import time
 import asyncio
 import os
 import uvicorn
+from dotenv import load_dotenv
+from google import genai
+
 from services.ingestion import RepositoryIngester
 from services.ast_parser import ASTParser
 from services.graph_db import KnowledgeGraph
 from services.vector_db import VectorDB
+
+load_dotenv()
+try:
+    gemini_client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
+except Exception as e:
+    print(f"Warning: Failed to initialize Gemini client: {e}")
+    gemini_client = None
 
 app = FastAPI()
 
@@ -104,15 +114,181 @@ async def ingest_codebase(request: IngestRequest):
 @app.post("/api/query")
 async def handle_query(request: QueryRequest):
     init_services()
-    # Mocking a response for the AI for now
-    await asyncio.sleep(1.5) # Simulate processing time
     
-    # Test vector DB search
-    results = vector_db.search(request.query, n_results=1)
+    # Retrieve top 3 relevant results from the Vector DB
+    results = vector_db.search(request.query, n_results=3)
+    
     context = ""
-    if results and results['documents'] and len(results['documents'][0]) > 0:
-        context = f"Found relevant context in {results['metadatas'][0][0]['file']}"
+    sources = []
     
-    mock_response = f"I am running in mock mode. You asked: '{request.query}'.\n\nIf this were the full implementation, I would have used Gemini to synthesize a response.\n\nVector Search returned: {context}"
+    if results and results.get('documents') and len(results['documents']) > 0:
+        docs = results['documents'][0]
+        metadatas = results['metadatas'][0]
+        
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+import time
+import asyncio
+import os
+import uvicorn
+from dotenv import load_dotenv
+from google import genai
+
+from services.ingestion import RepositoryIngester
+from services.ast_parser import ASTParser
+from services.graph_db import KnowledgeGraph
+from services.vector_db import VectorDB
+
+load_dotenv()
+try:
+    gemini_client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
+except Exception as e:
+    print(f"Warning: Failed to initialize Gemini client: {e}")
+    gemini_client = None
+
+app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Initialize singletons for the services (lazy init for ML models to avoid slow startup)
+ingester = None
+ast_parser = None
+graph_db = None
+vector_db = None
+
+def init_services():
+    global ingester, ast_parser, graph_db, vector_db
+    if not ingester:
+        print("Initializing services...")
+        ingester = RepositoryIngester()
+        ast_parser = ASTParser()
+        graph_db = KnowledgeGraph()
+        vector_db = VectorDB()
+        print("Services initialized.")
+
+class IngestRequest(BaseModel):
+    repo_url_or_path: str
+
+class QueryRequest(BaseModel):
+    query: str
+
+@app.on_event("startup")
+async def startup_event():
+    # Defer heavy loading to first request or run in background
+    pass
+
+@app.get("/")
+def read_root():
+    return {"status": "ok"}
+
+@app.post("/api/ingest")
+async def ingest_codebase(request: IngestRequest):
+    init_services()
+    print(f"Starting ingestion for: {request.repo_url_or_path}")
     
-    return {"answer": mock_response, "sources": ["mocked_file.py", "mocked_service.js"]}
+    # 1. Clone/Copy Repository
+    repo_path = ingester.ingest_repository(request.repo_url_or_path)
+    
+    files_processed = 0
+    # 2. Traverse files
+    for file_path in ingester.traverse_files(repo_path):
+        try:
+            # 3. Parse AST
+            symbols = ast_parser.parse_file(file_path)
+            
+            # Read file content for vector DB
+            with open(file_path, "r", encoding="utf-8") as f:
+                code_content = f.read()
+            
+            rel_path = str(file_path.relative_to(repo_path))
+            
+            # 4. Add to Vector DB
+            vector_db.add_document(
+                doc_id=rel_path,
+                text=code_content,
+                metadata={"file": rel_path}
+            )
+            
+            # 5. Add to Knowledge Graph
+            graph_db.add_file(rel_path)
+            if symbols:
+                for func in symbols["functions"]:
+                    graph_db.add_symbol(rel_path, func, "function")
+                for cls in symbols["classes"]:
+                    graph_db.add_symbol(rel_path, cls, "class")
+                for imp in symbols["imports"]:
+                    # Naive import linking
+                    graph_db.add_import(rel_path, imp)
+            
+            files_processed += 1
+        except Exception as e:
+            print(f"Error processing {file_path}: {e}")
+            
+    summary = graph_db.get_summary()
+    return {
+        "status": "success", 
+        "files_processed": files_processed,
+        "graph_summary": summary
+    }
+
+@app.post("/api/query")
+async def handle_query(request: QueryRequest):
+    init_services()
+    
+    # Retrieve top 3 relevant results from the Vector DB
+    results = vector_db.search(request.query, n_results=3)
+    
+    context = ""
+    sources = []
+    
+    if results and results.get('documents') and len(results['documents']) > 0:
+        docs = results['documents'][0]
+        metadatas = results['metadatas'][0]
+        
+        for idx, doc in enumerate(docs):
+            if not doc:
+                continue
+            file_path = metadatas[idx].get('file', f"snippet_{idx}")
+            sources.append(file_path)
+            
+            # Truncate doc if it's too long to avoid overloading the API
+            truncated_doc = doc[:2500] + ("\n...[TRUNCATED]" if len(doc) > 2500 else "")
+            context += f"\n\n--- File: {file_path} ---\n{truncated_doc}"
+            
+    # Remove duplicate sources
+    sources = list(set(sources))
+    
+    prompt = f"""You are a helpful coding assistant analyzing a codebase.
+The user has asked a question. Use the following code snippets retrieved from the codebase to answer the question.
+If the answer is not in the code snippets, say so. Do not hallucinate code. Try to be concise and accurate.
+CRITICAL: You MUST explicitly state the exact file path and folder location (e.g., 'frontend/src/app/page.tsx') for any code you reference or explain.
+
+User Question: {request.query}
+
+Code Context:{context}
+"""
+
+    if not gemini_client:
+        return {"answer": "Error: Gemini client not initialized. Check API key.", "sources": []}
+
+    try:
+        response = gemini_client.models.generate_content(
+            model='gemini-2.5-flash',
+            contents=prompt
+        )
+        answer = response.text
+    except Exception as e:
+        answer = f"Error communicating with Gemini: {str(e)}"
+    
+    return {"answer": answer, "sources": sources}
+
+
+if __name__ == '__main__':
+    uvicorn.run(app, host='0.0.0.0', port=8080)
