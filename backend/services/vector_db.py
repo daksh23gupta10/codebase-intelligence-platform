@@ -1,23 +1,28 @@
+import chromadb
+
 class VectorDB:
     def __init__(self):
-        print("Initializing VectorDB Mock (Bypassing ChromaDB/PyTorch Windows pip hang)...")
-        self.documents = []
+        print("Initializing Local Persistent ChromaDB...")
+        self.client = chromadb.PersistentClient(path="./chroma_db")
+        self.collection = self.client.get_or_create_collection(name="codebase_collection")
 
     def add_document(self, doc_id: str, text: str, metadata: dict = None):
         if not text.strip():
             return
             
-        self.documents.append({
-            "id": doc_id,
-            "text": text,
-            "metadata": metadata or {}
-        })
+        self.collection.upsert(
+            ids=[doc_id],
+            documents=[text],
+            metadatas=[metadata or {}]
+        )
 
     def search(self, query: str, n_results: int = 5):
-        # Extremely naive substring match for the mock
-        results = [doc for doc in self.documents if query.lower() in doc["text"].lower()]
-        
-        return {
-            "documents": [[doc["text"] for doc in results[:n_results]]],
-            "metadatas": [[doc["metadata"] for doc in results[:n_results]]]
-        }
+        try:
+            results = self.collection.query(
+                query_texts=[query],
+                n_results=n_results
+            )
+            return results
+        except Exception as e:
+            print(f"ChromaDB Search Error: {e}")
+            return {"documents": [[]], "metadatas": [[]]}

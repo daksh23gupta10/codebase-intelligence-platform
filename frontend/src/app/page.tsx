@@ -14,6 +14,8 @@ export default function Home() {
   ]);
   const [loading, setLoading] = useState(false);
   const [loginStatus, setLoginStatus] = useState('unauthenticated'); // 'unauthenticated' | 'welcoming' | 'authenticated'
+  const [authChecked, setAuthChecked] = useState(false);
+  const [isReady, setIsReady] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loginErrors, setLoginErrors] = useState({ email: false, password: false });
@@ -24,6 +26,23 @@ export default function Home() {
   const [ingestStatus, setIngestStatus] = useState('');
   const [copiedIndex, setCopiedIndex] = useState(null);
   const fileInputRef = React.useRef(null);
+
+  useEffect(() => {
+    const isAuth = localStorage.getItem('isAuthenticated');
+    if (isAuth === 'true') {
+      setLoginStatus('authenticated');
+    }
+    setAuthChecked(true);
+  }, []);
+
+  useEffect(() => {
+    if (loginStatus === 'welcoming') {
+      const timer = setTimeout(() => setIsReady(true), 2500);
+      return () => clearTimeout(timer);
+    } else {
+      setIsReady(false);
+    }
+  }, [loginStatus]);
 
   useEffect(() => {
     if (loginStatus === 'authenticated') {
@@ -108,6 +127,10 @@ export default function Home() {
     }
   };
 
+  if (!authChecked) {
+    return <main className="w-full h-screen bg-[#03010A]" />;
+  }
+
   return (
     <ClickSpark sparkColor='#06B6D4' sparkSize={12} sparkRadius={20} sparkCount={10} duration={600}>
       <main className="relative w-full h-screen bg-[#03010A] text-white overflow-hidden font-sans select-none">
@@ -144,8 +167,8 @@ export default function Home() {
           >
             <div className="p-8 flex flex-col w-full h-full">
               <div className="text-center mb-8">
-              <div className="w-14 h-14 mx-auto rounded-full bg-gradient-to-tr from-indigo-500 to-cyan-400 flex items-center justify-center shadow-[0_0_20px_rgba(6,182,212,0.6)] mb-5 group-hover:scale-110 transition-transform duration-500">
-                <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>
+              <div className="relative w-14 h-14 mx-auto rounded-full bg-gradient-to-tr from-indigo-500 to-cyan-400 flex items-center justify-center shadow-[0_0_20px_rgba(6,182,212,0.6)] mb-5 group-hover:scale-110 transition-transform duration-500">
+                <svg className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[45%] w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><circle cx="18" cy="6" r="3"/><path d="M18 9v1a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V9"/><path d="M12 12v3"/></svg>
               </div>
               <h2 className="text-2xl font-bold tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-indigo-100 to-cyan-100 uppercase">Codebase AI</h2>
               <p className="text-gray-400 text-sm mt-2">Sign in to access enterprise intelligence</p>
@@ -156,11 +179,11 @@ export default function Home() {
               setLoginErrors(newErrors);
               if (newErrors.email || newErrors.password) return;
               
+              localStorage.setItem('isAuthenticated', 'true');
               setLoginStatus('welcoming');
-              setTimeout(() => setLoginStatus('authenticated'), 2500); 
             }} className="flex flex-col gap-5">
               <div className="relative">
-                <label className="block text-[10px] text-cyan-300/80 mb-1.5 ml-1 uppercase tracking-[0.2em] font-semibold">Work Email</label>
+                <label className="block text-[10px] text-cyan-300/80 mb-1.5 ml-1 uppercase tracking-[0.2em] font-semibold">User ID</label>
                 <div className="relative">
                   <input type="email" value={email} onChange={(e) => { setEmail(e.target.value); if(loginErrors.email) setLoginErrors({...loginErrors, email: false}); }} placeholder="name@company.com" className={`w-full bg-black/40 backdrop-blur-md border ${loginErrors.email ? 'border-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.2)]' : 'border-white/10 focus:border-cyan-400/50 focus:shadow-[0_0_20px_rgba(6,182,212,0.2)]'} rounded-xl px-4 py-3.5 text-white placeholder-gray-500 focus:outline-none transition-all duration-300 hover:bg-white/10 focus:-translate-y-0.5 pr-10`} />
                   {loginErrors.email && (
@@ -190,8 +213,8 @@ export default function Home() {
       </div>
 
       <div className={`absolute inset-0 z-10 flex flex-col items-center justify-center h-full w-full p-4 transition-all duration-1000 ease-in-out ${loginStatus === 'welcoming' ? 'opacity-100 pointer-events-auto scale-100' : (loginStatus === 'unauthenticated' ? 'opacity-0 pointer-events-none scale-75' : 'opacity-0 pointer-events-none scale-150')}`}>
-          <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-indigo-500 to-cyan-400 flex items-center justify-center shadow-[0_0_40px_rgba(6,182,212,0.6)] mb-8 animate-pulse">
-            <svg className="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>
+          <div className="relative w-20 h-20 rounded-full bg-gradient-to-tr from-indigo-500 to-cyan-400 flex items-center justify-center shadow-[0_0_40px_rgba(6,182,212,0.6)] mb-8 animate-pulse">
+            <svg className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[45%] w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><circle cx="18" cy="6" r="3"/><path d="M18 9v1a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V9"/><path d="M12 12v3"/></svg>
           </div>
           <div className="w-full max-w-3xl h-16 md:h-24 flex items-center justify-center mx-auto mb-6">
             <TextPressure
@@ -206,12 +229,8 @@ export default function Home() {
               minFontSize={36}
             />
           </div>
-          <div className="w-64 h-1.5 bg-white/10 rounded-full overflow-hidden relative shadow-[0_0_10px_rgba(6,182,212,0.3)]">
-            <div className="absolute inset-y-0 left-0 bg-gradient-to-r from-cyan-400 to-indigo-500 w-full origin-left animate-pulse"></div>
-          </div>
-          <p className="text-cyan-300/80 text-xs mt-6 uppercase tracking-[0.3em] font-semibold animate-pulse">Initializing Interface...</p>
-          
-          <div className="mt-6 flex justify-center items-baseline gap-1 w-full text-center">
+
+          <div className="flex justify-center items-baseline gap-1 mb-6">
             <CountUp 
               from={0} 
               to={100} 
@@ -221,14 +240,28 @@ export default function Home() {
             />
             <span className="text-2xl font-bold text-cyan-400 drop-shadow-[0_0_15px_rgba(6,182,212,0.5)]">%</span>
           </div>
-      </div>
+
+          <div className="w-64 h-1.5 bg-white/10 rounded-full overflow-hidden relative shadow-[0_0_10px_rgba(6,182,212,0.3)]">
+            <div className="absolute inset-y-0 left-0 bg-gradient-to-r from-cyan-400 to-indigo-500 w-full origin-left animate-pulse"></div>
+          </div>
+          <p className="text-cyan-300/80 text-xs mt-4 uppercase tracking-[0.3em] font-semibold animate-pulse mb-8">Initializing Interface...</p>
+          
+          <button
+            onClick={() => setLoginStatus('authenticated')}
+            disabled={!isReady}
+            style={{ animation: 'fade-in-up 0.5s ease-out 2.5s both' }}
+            className="px-8 py-3 bg-gradient-to-r from-indigo-500 to-cyan-400 rounded-full font-bold uppercase tracking-[0.2em] text-white text-sm shadow-[0_0_20px_rgba(6,182,212,0.4)] hover:shadow-[0_0_30px_rgba(6,182,212,0.6)] hover:scale-105 active:scale-95 transition-all disabled:opacity-0 disabled:pointer-events-none"
+          >
+            Enter Workspace
+          </button>
+        </div>
 
       <div className={`absolute inset-0 z-10 w-full h-full transition-all duration-1000 ease-in-out ${loginStatus === 'authenticated' ? 'opacity-100 pointer-events-auto scale-100' : 'opacity-0 pointer-events-none scale-75'}`}>
           {/* Futuristic Nav Bar */}
           <nav className="absolute top-0 w-full z-20 px-8 py-4 flex items-center justify-between backdrop-blur-md border-b border-white/5 bg-black/20 animate-in slide-in-from-top duration-500">
             <div className="flex items-center gap-3 cursor-pointer group">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-cyan-400 flex items-center justify-center shadow-[0_0_15px_rgba(6,182,212,0.5)] group-hover:shadow-[0_0_25px_rgba(6,182,212,0.8)] transition-shadow duration-300">
-                <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>
+              <div className="relative w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-cyan-400 flex items-center justify-center shadow-[0_0_15px_rgba(6,182,212,0.5)] group-hover:shadow-[0_0_25px_rgba(6,182,212,0.8)] transition-shadow duration-300">
+               <svg className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[45%] w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><circle cx="18" cy="6" r="3"/><path d="M18 9v1a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V9"/><path d="M12 12v3"/></svg>
               </div>
               <span className="text-lg font-bold tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-indigo-100 to-cyan-100 uppercase group-hover:from-indigo-300 group-hover:to-cyan-300 transition-all duration-300">
                 Codebase AI
@@ -238,7 +271,7 @@ export default function Home() {
               <a href="#" className="hover:text-cyan-400 hover:scale-110 active:scale-90 active:text-cyan-300 transition-all duration-200 inline-block">Dashboard</a>
               <a href="#" className="hover:text-cyan-400 hover:scale-110 active:scale-90 active:text-cyan-300 transition-all duration-200 inline-block">Dependency Graph</a>
               <a href="#" className="hover:text-cyan-400 hover:scale-110 active:scale-90 active:text-cyan-300 transition-all duration-200 inline-block">Settings</a>
-              <button onClick={() => setLoginStatus('unauthenticated')} className="px-6 py-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-white transition-all duration-200 hover:shadow-[0_0_15px_rgba(255,255,255,0.1)] hover:-translate-y-0.5 active:scale-95 active:translate-y-0">
+              <button onClick={() => { localStorage.removeItem('isAuthenticated'); setLoginStatus('unauthenticated'); }} className="px-6 py-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-white transition-all duration-200 hover:shadow-[0_0_15px_rgba(255,255,255,0.1)] hover:-translate-y-0.5 active:scale-95 active:translate-y-0">
                 Sign Out
               </button>
             </div>
