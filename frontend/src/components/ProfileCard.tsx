@@ -42,12 +42,14 @@ interface ProfileCardProps {
   mobileTiltSensitivity?: number;
   miniAvatarUrl?: string;
   name?: string;
-  title?: string;
+  title?: React.ReactNode;
   handle?: string;
   status?: string;
   contactText?: string;
   showUserInfo?: boolean;
   onContactClick?: () => void;
+  isFullImage?: boolean;
+  imageAlignment?: string;
 }
 
 const ProfileCardComponent = ({
@@ -69,7 +71,9 @@ const ProfileCardComponent = ({
   status = 'Online',
   contactText = 'Contact',
   showUserInfo = true,
-  onContactClick
+  onContactClick,
+  isFullImage = false,
+  imageAlignment = 'object-center'
 }: ProfileCardProps) => {
   const wrapRef = useRef<HTMLDivElement>(null);
   const shellRef = useRef<HTMLDivElement>(null);
@@ -493,7 +497,6 @@ const ProfileCardComponent = ({
             <div
               className="overflow-visible backface-hidden"
               style={{
-                mixBlendMode: 'luminosity',
                 transform: 'translateZ(2px)',
                 gridArea: '1 / -1',
                 borderRadius: cardRadius,
@@ -501,7 +504,7 @@ const ProfileCardComponent = ({
               }}
             >
               <img
-                className="w-full absolute left-1/2 bottom-[-1px] backface-hidden will-change-transform transition-transform duration-[120ms] ease-out"
+                className={`w-full absolute left-1/2 backface-hidden will-change-transform transition-transform duration-[120ms] ease-out ${isFullImage ? `h-[65%] object-cover ${imageAlignment} bottom-0` : 'bottom-[-1px]'}`}
                 src={avatarUrl}
                 alt={`${name || 'User'} avatar`}
                 loading="lazy"
@@ -512,8 +515,7 @@ const ProfileCardComponent = ({
                   borderRadius: cardRadius
                 }}
                 onError={e => {
-                  const t = e.target as HTMLImageElement;
-                  t.style.display = 'none';
+                  console.error("Image failed to load:", avatarUrl);
                 }}
               />
               {showUserInfo && (
@@ -581,7 +583,7 @@ const ProfileCardComponent = ({
                   className="font-semibold m-0"
                   style={{
                     fontSize: 'min(5svh, 3em)',
-                    backgroundImage: 'linear-gradient(to bottom, #fff, #6f6fbe)',
+                    backgroundImage: 'linear-gradient(to bottom, #ffffff, #93c5fd)',
                     backgroundSize: '1em 1.5em',
                     WebkitTextFillColor: 'transparent',
                     backgroundClip: 'text',
@@ -592,13 +594,14 @@ const ProfileCardComponent = ({
                   {name}
                 </h3>
                 <p
-                  className="font-semibold whitespace-nowrap mx-auto w-min"
+                  className="font-semibold mx-auto w-full px-2"
                   style={{
                     position: 'relative',
-                    top: '-12px',
+                    top: '-2px',
                     fontSize: '16px',
+                    lineHeight: '1.1',
                     margin: '0 auto',
-                    backgroundImage: 'linear-gradient(to bottom, #fff, #4a4ac0)',
+                    backgroundImage: 'linear-gradient(to bottom, #e879f9, #22d3ee)',
                     backgroundSize: '1em 1.5em',
                     WebkitTextFillColor: 'transparent',
                     backgroundClip: 'text',

@@ -5,34 +5,60 @@ import ProfileCard from '@/components/ProfileCard';
 import ElectricBorder from '@/components/ElectricBorder';
 import Ferrofluid from '@/components/Ferrofluid';
 import TiltedCard from '@/components/TiltedCard';
+import Shuffle from '@/components/Shuffle';
+import NavBar from '@/components/NavBar';
 
 const teamMembers = [
   {
     name: "Pratham Jain",
-    title: "Full Stack Developer",
+    title: (
+      <>
+        AI / ML Engineer<br/>
+        <span className="text-sm">+</span><br/>
+        Frontend Developer
+      </>
+    ),
     handle: "prathamjain",
     status: "Lead Developer",
-    avatarUrl: "/avatar1.png",
+    avatarUrl: "/pratham2.jpg",
+    isFullImage: true,
     contactText: "GitHub",
+    contactUrl: "https://github.com/TeamDDPratham",
     innerGradient: "linear-gradient(145deg, #1a0a2e8c 0%, #06b6d444 100%)",
     behindGlowColor: "rgba(6, 182, 212, 0.5)",
   },
   {
-    name: "Team Member 2",
-    title: "Backend Engineer",
-    handle: "member2",
+    name: "Daksh Gupta",
+    title: (
+      <>
+        AI / ML Engineer<br/>
+        <span className="text-sm">+</span><br/>
+        Backend Developer
+      </>
+    ),
+    handle: "dakshgupta",
     status: "Core Contributor",
-    avatarUrl: "/avatar2.png",
+    avatarUrl: "/member2_photo2.jpg",
+    isFullImage: true,
+    imageAlignment: "object-top",
     contactText: "GitHub",
+    contactUrl: "https://github.com/daksh23gupta10",
     innerGradient: "linear-gradient(145deg, #0a1e2e8c 0%, #6366f144 100%)",
     behindGlowColor: "rgba(99, 102, 241, 0.5)",
   },
   {
-    name: "Team Member 3",
-    title: "AI / ML Engineer",
-    handle: "member3",
+    name: "Navya Vermani",
+    title: (
+      <>
+        AI / ML Engineer<br/>
+        <span className="text-sm">+</span><br/>
+        Research Expert
+      </>
+    ),
+    handle: "navyavermani",
     status: "Core Contributor",
-    avatarUrl: "/avatar3.png",
+    avatarUrl: "/member3_photo.jpg",
+    isFullImage: true,
     contactText: "GitHub",
     innerGradient: "linear-gradient(145deg, #1e0a2e8c 0%, #a855f744 100%)",
     behindGlowColor: "rgba(168, 85, 247, 0.5)",
@@ -64,49 +90,33 @@ export default function AboutPage() {
         />
       </div>
 
-      {/* Futuristic Nav Bar - identical to home page */}
-      <nav className="absolute top-0 w-full z-20 px-8 py-4 flex items-center justify-between backdrop-blur-md border-b border-white/5 bg-black/20 animate-in slide-in-from-top duration-500">
-        <div className="flex items-center gap-3 cursor-pointer group">
-          <div className="relative w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.5)] group-hover:shadow-[0_0_25px_rgba(6,182,212,0.8)] transition-shadow duration-300">
-            <svg className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="18" r="2.5"/>
-              <circle cx="6" cy="6" r="2.5"/>
-              <circle cx="18" cy="6" r="2.5"/>
-              <path d="M18 8.5v1.5a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V8.5"/>
-              <path d="M12 12v3.5"/>
-            </svg>
-          </div>
-          <span className="text-lg font-bold tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-indigo-100 to-cyan-100 uppercase group-hover:from-indigo-300 group-hover:to-cyan-300 transition-all duration-300">
-            Codebase AI
-          </span>
-        </div>
-        <div className="flex items-center gap-8 text-sm font-medium">
-          <ElectricBorder color="#06b6d4" borderRadius={999} chaos={0.06} displacement={8} style={{ display: 'inline-block' }}>
-            <a href="/" className="px-6 py-2 rounded-full bg-black/40 hover:bg-white/10 border border-white/10 text-white transition-all duration-200 hover:shadow-[0_0_15px_rgba(6,182,212,0.3)] hover:-translate-y-0.5 active:scale-95 active:translate-y-0 inline-block w-full h-full relative z-10">Home</a>
-          </ElectricBorder>
-          <ElectricBorder color="#06b6d4" borderRadius={999} chaos={0.06} displacement={8} style={{ display: 'inline-block' }}>
-            <a href="#" className="px-6 py-2 rounded-full bg-black/40 hover:bg-white/10 border border-white/10 text-white transition-all duration-200 hover:shadow-[0_0_15px_rgba(6,182,212,0.3)] hover:-translate-y-0.5 active:scale-95 active:translate-y-0 inline-block w-full h-full relative z-10">Repo Tree</a>
-          </ElectricBorder>
-          <ElectricBorder color="#06b6d4" borderRadius={999} chaos={0.06} displacement={8} style={{ display: 'inline-block' }}>
-            <a href="/about" className="px-6 py-2 rounded-full bg-black/40 hover:bg-white/10 border border-white/10 text-white transition-all duration-200 hover:shadow-[0_0_15px_rgba(6,182,212,0.3)] hover:-translate-y-0.5 active:scale-95 active:translate-y-0 inline-block w-full h-full relative z-10">About Us</a>
-          </ElectricBorder>
-          <div className="w-px h-8 bg-cyan-400 rounded-full shadow-[0_0_12px_rgba(34,211,238,0.8)]" />
-          <ElectricBorder color="#06b6d4" borderRadius={999} chaos={0.06} displacement={8} style={{ display: 'inline-block' }}>
-            <button onClick={() => setIsSignOutConfirmOpen(true)} className="px-6 py-2 rounded-full bg-black/40 hover:bg-white/10 border border-white/10 text-white transition-all duration-200 hover:shadow-[0_0_15px_rgba(6,182,212,0.3)] hover:-translate-y-0.5 active:scale-95 active:translate-y-0 relative z-10">
-              Sign Out
-            </button>
-          </ElectricBorder>
-        </div>
-      </nav>
+      {/* Futuristic Nav Bar */}
+      <NavBar onSignOut={() => setIsSignOutConfirmOpen(true)} />
 
       {/* Scrollable content area */}
       <div className="absolute inset-0 z-10 w-full h-full overflow-y-auto pt-[80px] custom-scrollbar">
         {/* Hero section */}
         <div className="flex flex-col items-center pt-16 pb-10 px-8">
           <p className="text-cyan-300/80 text-[10px] uppercase tracking-[0.3em] font-semibold mb-3">The Team Behind</p>
-          <h1 className="text-5xl md:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-indigo-400 to-purple-500 mb-4">
-            Codebase Intelligence
-          </h1>
+          <Shuffle
+            text="Codebase Intelligence"
+            tag="h1"
+            shuffleDirection="right"
+            duration={0.35}
+            animationMode="evenodd"
+            shuffleTimes={1}
+            ease="power3.out"
+            stagger={0.03}
+            threshold={0.1}
+            triggerOnce={true}
+            triggerOnHover={true}
+            loop={true}
+            loopDelay={3}
+            respectReducedMotion={true}
+            colorFrom="#d946ef"
+            colorTo="#22d3ee"
+            className="text-3xl md:text-5xl font-black tracking-tighter text-cyan-400 mb-4 pb-2"
+          />
           <p className="text-gray-400 text-lg max-w-2xl text-center leading-relaxed">
             We are a team of passionate developers building the next generation of AI-powered code analysis tools. 
             Our mission is to make understanding complex codebases effortless through intelligent graph-based reasoning.
@@ -126,14 +136,20 @@ export default function AboutPage() {
                 handle={member.handle}
                 status={member.status}
                 avatarUrl={member.avatarUrl}
+                isFullImage={member.isFullImage}
+                imageAlignment={member.imageAlignment}
                 contactText={member.contactText}
+                onContactClick={() => {
+                  if (member.contactUrl) {
+                    window.open(member.contactUrl, '_blank');
+                  }
+                }}
                 showUserInfo={true}
                 enableTilt={true}
                 enableMobileTilt={false}
                 behindGlowEnabled
                 behindGlowColor={member.behindGlowColor}
                 innerGradient={member.innerGradient}
-                onContactClick={() => console.log(`Contact ${member.name}`)}
               />
             </div>
           ))}
