@@ -20,3 +20,8 @@ class KnowledgeGraph:
             "nodes": self.graph.number_of_nodes(),
             "edges": self.graph.number_of_edges()
         }
+
+    def delete_repo(self, repo_name: str):
+        nodes_to_remove = [node for node in self.graph.nodes if str(node).startswith(f"{repo_name}/")]
+        self.graph.remove_nodes_from(nodes_to_remove)
+        print(f"Deleted {len(nodes_to_remove)} nodes from graph for repo {repo_name}")

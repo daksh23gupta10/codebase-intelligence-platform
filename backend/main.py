@@ -275,6 +275,36 @@ def list_files():
     tree = get_file_tree(workspaces_dir)
     return {"status": "success", "files": tree}
 
+import shutil
+import stat
+
+def remove_readonly(func, path, exc_info):
+    try:
+        os.chmod(path, stat.S_IWRITE)
+        func(path)
+    except Exception:
+        pass
+
+@app.delete("/api/repos/{repo_name}")
+def delete_repo(repo_name: str):
+    init_services()
+    try:
+        # Delete from disk
+        workspaces_dir = os.path.join(os.getcwd(), "workspaces")
+        repo_path = os.path.join(workspaces_dir, repo_name)
+        if os.path.exists(repo_path):
+            shutil.rmtree(repo_path, onerror=remove_readonly)
+            
+        # Delete from vector DB
+        vector_db.delete_repo(repo_name)
+        
+        # Delete from graph DB
+        graph_db.delete_repo(repo_name)
+        
+        return {"status": "success", "message": f"Deleted {repo_name}"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
 @app.post("/api/query")
 async def handle_query(request: QueryRequest):
     init_services()

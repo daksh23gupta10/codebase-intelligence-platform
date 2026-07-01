@@ -1,20 +1,26 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import ElectricBorder from '@/components/ElectricBorder';
+import TypewriterText from '@/components/TypewriterText';
+import TiltedCard from '@/components/TiltedCard';
 import Ferrofluid from '@/components/Ferrofluid';
 import ClickSpark from '@/components/ClickSpark';
 import BorderGlow from '@/components/BorderGlow';
 import CountUp from '@/components/CountUp';
 import TextPressure from '@/components/TextPressure';
 
-const FileTreeNode = ({ node }) => {
+const FileTreeNode = ({ node, depth = 0 }) => {
   const [isOpen, setIsOpen] = React.useState(false);
   const isDir = node.type === 'directory';
+  const isRootRepo = isDir && depth === 0;
+  const dirColor = isRootRepo ? 'text-pink-400 font-bold' : 'text-indigo-300 font-semibold';
 
   return (
     <div className="pl-2">
       <div 
-        className={`flex items-center gap-2 py-1.5 px-2 rounded-md hover:bg-white/5 cursor-pointer text-xs ${isDir ? 'text-indigo-300 font-semibold' : 'text-gray-300 hover:text-cyan-300 transition-colors'}`}
+        className={`flex items-center justify-start gap-2 py-1.5 px-2 rounded-md hover:bg-white/5 cursor-pointer text-xs ${isDir ? dirColor : 'text-gray-300 hover:text-cyan-300 transition-colors'}`}
         onClick={() => isDir && setIsOpen(!isOpen)}
       >
         {isDir ? (
@@ -23,11 +29,11 @@ const FileTreeNode = ({ node }) => {
         ) : (
           <svg className="w-4 h-4 text-cyan-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
         )}
-        <span className="truncate">{node.name}</span>
+        <span className="truncate mr-auto text-left">{node.name}</span>
       </div>
       {isDir && isOpen && node.children && (
         <div className="border-l border-white/10 ml-2">
-          {node.children.map((child, idx) => <FileTreeNode key={idx} node={child} />)}
+          {node.children.map((child, idx) => <FileTreeNode key={idx} node={child} depth={depth + 1} />)}
         </div>
       )}
     </div>
@@ -35,15 +41,76 @@ const FileTreeNode = ({ node }) => {
 };
 
 export default function Home() {
-  const [fileTree, setFileTree] = useState([]);
+  const [fileTree, setFileTree] = useState<any[]>([]);
   const [query, setQuery] = useState('');
-  const [chatHistory, setChatHistory] = useState([
-    { role: 'assistant', content: "Hello, I'm your Codebase AI. Add your repository file." }
+  
+  // Chat Sessions State
+  const [chatSessions, setChatSessions] = useState([
+    {
+      id: "init_session",
+      name: "New Chat",
+      history: [
+        { id: "init_msg", role: 'assistant', content: "Hello, I'm your Codebase AI. Add your repository file." }
+      ]
+    }
   ]);
+  const [currentSessionId, setCurrentSessionId] = useState(chatSessions[0]?.id);
+  const [isHistoryDrawerOpen, setIsHistoryDrawerOpen] = useState(false);
+  
+  // Computed current history
+  const currentSession = chatSessions.find(s => s.id === currentSessionId) || chatSessions[0];
+  const chatHistory = currentSession ? currentSession.history : [];
+
+  // Helper to append a message to the active chat session
+  const appendToChat = (msg) => {
+    setChatSessions(prev => prev.map(s => {
+      if (s.id === currentSessionId) {
+        const newHistory = [...s.history, msg];
+        let newName = s.name;
+        // Auto-rename on first user message
+        if (s.history.length === 1 && msg.role === 'user') {
+          newName = msg.content.substring(0, 30) + (msg.content.length > 30 ? '...' : '');
+        }
+        return { ...s, history: newHistory, name: newName };
+      }
+      return s;
+    }));
+  };
+
+  const startNewChat = () => {
+    const newSessionId = Date.now().toString();
+    const newMsgId = newSessionId + "_msg";
+    const newSession = {
+      id: newSessionId,
+      name: "New Chat",
+      history: [
+        { id: newMsgId, role: 'assistant', content: "Hello, I'm your Codebase AI. Add your repository file." }
+      ]
+    };
+    setChatSessions(prev => [newSession, ...prev]);
+    setCurrentSessionId(newSessionId);
+    setIsHistoryDrawerOpen(false);
+    setAnimatingMessageId(newMsgId);
+  };
+
+  const deleteChat = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    if (chatSessions.length <= 1) return; // Keep at least one chat
+    setChatSessions(prev => prev.filter(s => s.id !== id));
+    if (currentSessionId === id) {
+      setCurrentSessionId(chatSessions.find(s => s.id !== id)?.id || chatSessions[0].id);
+    }
+  };
+  const [loadingComplete, setLoadingComplete] = useState(false);
+  const [loginStatus, setLoginStatus] = useState<'unauthenticated' | 'welcoming' | 'authenticated'>('unauthenticated');
   const [loading, setLoading] = useState(false);
-  const [loginStatus, setLoginStatus] = useState('unauthenticated'); // 'unauthenticated' | 'welcoming' | 'authenticated'
   const [authChecked, setAuthChecked] = useState(false);
   const [isReady, setIsReady] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [showClearRepoModal, setShowClearRepoModal] = useState(false);
+  const [isDeletingRepo, setIsDeletingRepo] = useState(false);
+  const [isSignOutConfirmOpen, setIsSignOutConfirmOpen] = useState(false);
+  const [animatingMessageId, setAnimatingMessageId] = useState<string | null>("init_msg");
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loginErrors, setLoginErrors] = useState({ email: false, password: false });
@@ -57,9 +124,10 @@ export default function Home() {
   const passwordInputRef = React.useRef(null);
   const progressBarRef = React.useRef(null);
   const [isMounted, setIsMounted] = useState(false);
-  const [loadingComplete, setLoadingComplete] = useState(false);
+
 
   const fetchFiles = async () => {
+    setIsRefreshing(true);
     try {
       const res = await fetch('http://localhost:8080/api/files');
       const data = await res.json();
@@ -68,6 +136,43 @@ export default function Home() {
       }
     } catch (e) {
       console.error('Failed to fetch file tree:', e);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  const handleDeleteRepo = async (repoName: string) => {
+    setIsDeletingRepo(true);
+    try {
+      const res = await fetch(`http://localhost:8080/api/repos/${repoName}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.status === 'success') {
+        fetchFiles();
+        setShowClearRepoModal(false);
+      } else {
+        alert('Failed to delete repo: ' + data.message);
+      }
+    } catch (e) {
+      alert('Error deleting repository.');
+    } finally {
+      setIsDeletingRepo(false);
+    }
+  };
+
+  const handleDeleteAllRepos = async () => {
+    if (fileTree.length === 0) return;
+    setIsDeletingRepo(true);
+    try {
+      const promises = fileTree.map(repo => 
+        fetch(`http://localhost:8080/api/repos/${repo.name}`, { method: 'DELETE' })
+      );
+      await Promise.all(promises);
+      fetchFiles();
+      setShowClearRepoModal(false);
+    } catch (e) {
+      alert('Error deleting all repositories.');
+    } finally {
+      setIsDeletingRepo(false);
     }
   };
 
@@ -189,7 +294,7 @@ export default function Home() {
 
     const userMessage = query;
     setQuery('');
-    setChatHistory(prev => [...prev, { role: 'user', content: userMessage }]);
+    appendToChat({ role: 'user', content: userMessage });
     setLoading(true);
 
     try {
@@ -200,10 +305,14 @@ export default function Home() {
         body: JSON.stringify({ query: userMessage })
       });
       const data = await res.json();
-      setChatHistory(prev => [...prev, { role: 'assistant', content: data.answer }]);
+      const newMsgId = Date.now().toString();
+      appendToChat({ id: newMsgId, role: 'assistant', content: data.answer });
+      setAnimatingMessageId(newMsgId);
     } catch (err) {
       console.error(err);
-      setChatHistory(prev => [...prev, { role: 'assistant', content: 'Error communicating with backend.' }]);
+      const newMsgId = Date.now().toString();
+      appendToChat({ id: newMsgId, role: 'assistant', content: 'Error communicating with backend.' });
+      setAnimatingMessageId(newMsgId);
     } finally {
       setLoading(false);
     }
@@ -405,13 +514,22 @@ export default function Home() {
                 Codebase AI
               </span>
             </div>
-            <div className="flex items-center gap-8 text-sm font-medium text-gray-400">
-              <a href="#" className="hover:text-cyan-400 hover:scale-110 active:scale-90 active:text-cyan-300 transition-all duration-200 inline-block">Dashboard</a>
-              <a href="#" className="hover:text-cyan-400 hover:scale-110 active:scale-90 active:text-cyan-300 transition-all duration-200 inline-block">Dependency Graph</a>
-              <a href="#" className="hover:text-cyan-400 hover:scale-110 active:scale-90 active:text-cyan-300 transition-all duration-200 inline-block">Settings</a>
-              <button onClick={() => { localStorage.removeItem('isAuthenticated'); setLoginStatus('unauthenticated'); }} className="px-6 py-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-white transition-all duration-200 hover:shadow-[0_0_15px_rgba(255,255,255,0.1)] hover:-translate-y-0.5 active:scale-95 active:translate-y-0">
-                Sign Out
-              </button>
+            <div className="flex items-center gap-8 text-sm font-medium">
+              <ElectricBorder color="#06b6d4" borderRadius={999} chaos={0.06} displacement={8} style={{ display: 'inline-block' }}>
+                <a href="/" className="px-6 py-2 rounded-full bg-black/40 hover:bg-white/10 border border-white/10 text-white transition-all duration-200 hover:shadow-[0_0_15px_rgba(6,182,212,0.3)] hover:-translate-y-0.5 active:scale-95 active:translate-y-0 inline-block w-full h-full relative z-10">Home</a>
+              </ElectricBorder>
+              <ElectricBorder color="#06b6d4" borderRadius={999} chaos={0.06} displacement={8} style={{ display: 'inline-block' }}>
+                <a href="#" className="px-6 py-2 rounded-full bg-black/40 hover:bg-white/10 border border-white/10 text-white transition-all duration-200 hover:shadow-[0_0_15px_rgba(6,182,212,0.3)] hover:-translate-y-0.5 active:scale-95 active:translate-y-0 inline-block w-full h-full relative z-10">Repo Tree</a>
+              </ElectricBorder>
+              <ElectricBorder color="#06b6d4" borderRadius={999} chaos={0.06} displacement={8} style={{ display: 'inline-block' }}>
+                <a href="/about" className="px-6 py-2 rounded-full bg-black/40 hover:bg-white/10 border border-white/10 text-white transition-all duration-200 hover:shadow-[0_0_15px_rgba(6,182,212,0.3)] hover:-translate-y-0.5 active:scale-95 active:translate-y-0 inline-block w-full h-full relative z-10">About Us</a>
+              </ElectricBorder>
+              <div className="w-px h-8 bg-cyan-400 rounded-full shadow-[0_0_12px_rgba(34,211,238,0.8)]" />
+              <ElectricBorder color="#06b6d4" borderRadius={999} chaos={0.06} displacement={8} style={{ display: 'inline-block' }}>
+                <button onClick={() => setIsSignOutConfirmOpen(true)} className="px-6 py-2 rounded-full bg-black/40 hover:bg-white/10 border border-white/10 text-white transition-all duration-200 hover:shadow-[0_0_15px_rgba(6,182,212,0.3)] hover:-translate-y-0.5 active:scale-95 active:translate-y-0 relative z-10">
+                  Sign Out
+                </button>
+              </ElectricBorder>
             </div>
           </nav>
 
@@ -422,18 +540,34 @@ export default function Home() {
             <div className="hidden md:flex w-72 lg:w-80 shrink-0 flex-col h-[85vh] max-h-[1000px] my-auto bg-black/40 backdrop-blur-2xl border border-white/10 rounded-3xl shadow-[0_0_50px_rgba(6,182,212,0.15)] overflow-hidden">
               <header className="p-5 border-b border-white/5 bg-white/5 flex items-center justify-between">
                 <div>
-                  <h2 className="text-sm font-medium text-white/90">Workspace Files</h2>
+                  <h2 className="text-sm font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-indigo-400">Workspace Files</h2>
                   <p className="text-[10px] text-gray-500 uppercase tracking-widest mt-0.5">Vector Indexed</p>
                 </div>
-                <button onClick={fetchFiles} className="text-gray-400 hover:text-cyan-400 transition-colors" title="Refresh">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-                </button>
+                <div className="flex items-center gap-3">
+                  <button onClick={() => setShowClearRepoModal(true)} className="text-red-500/70 hover:text-red-400 hover:drop-shadow-[0_0_12px_rgba(248,113,113,1)] transition-all duration-200" title="Clear Repository">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                  </button>
+                  <button onClick={fetchFiles} className={`text-blue-500/80 hover:text-blue-400 hover:drop-shadow-[0_0_12px_rgba(96,165,250,1)] transition-all duration-200 ${isRefreshing ? 'animate-spin [animation-direction:reverse]' : ''}`} title="Refresh">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                  </button>
+                </div>
               </header>
               <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
                 {fileTree.length === 0 ? (
-                  <div className="text-center mt-10">
-                    <p className="text-gray-500 text-xs italic">No workspace loaded.</p>
-                    <button onClick={() => setShowIngestModal(true)} className="mt-4 text-xs text-cyan-400 hover:text-cyan-300 underline">Ingest Repository</button>
+                  <div className="flex items-center justify-center h-full pb-10">
+                    <div className="flex flex-col items-center gap-4">
+                      <div className="w-14 h-14 rounded-full bg-cyan-500/10 grid place-items-center border border-cyan-500/20 shadow-[0_0_30px_rgba(6,182,212,0.15)]">
+                        <svg className="w-6 h-6 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                      </div>
+                      <p className="text-gray-400 text-[13px] text-center px-4 leading-relaxed">Your workspace is empty.<br/>Load a codebase to get started.</p>
+                      <button 
+                        onClick={() => setShowIngestModal(true)} 
+                        className="group relative mt-2 px-5 py-2.5 rounded-xl font-medium bg-gradient-to-r from-cyan-500/10 to-indigo-500/10 border border-cyan-500/30 text-cyan-300 hover:text-white transition-all duration-300 hover:shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:border-cyan-400/50 flex items-center gap-2 active:scale-95"
+                      >
+                        <svg className="w-4 h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>
+                        Ingest Repository
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   fileTree.map((node, idx) => <FileTreeNode key={idx} node={node} />)
@@ -444,18 +578,85 @@ export default function Home() {
             {/* Main Chat Window */}
             <div className="flex flex-col flex-1 mx-auto my-auto h-[85vh] max-h-[1000px] bg-black/40 backdrop-blur-2xl border border-white/10 rounded-3xl shadow-[0_0_50px_rgba(6,182,212,0.15)] overflow-hidden">
               
-              <header className="p-6 text-center border-b border-white/5 bg-white/5">
+              <header className="p-6 text-center border-b border-white/5 bg-white/5 relative z-20">
+                <motion.button 
+                  whileTap={{ scale: 0.85 }}
+                  onClick={() => setIsHistoryDrawerOpen(!isHistoryDrawerOpen)}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-cyan-400 hover:bg-white/5 rounded-lg transition-colors"
+                  title="Chat History"
+                >
+                  <AnimatePresence mode="wait" initial={false}>
+                    {isHistoryDrawerOpen ? (
+                      <motion.svg key="close" initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.5 }} transition={{ duration: 0.15 }} className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></motion.svg>
+                    ) : (
+                      <motion.svg key="menu" initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.5 }} transition={{ duration: 0.15 }} className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h7"></path></motion.svg>
+                    )}
+                  </AnimatePresence>
+                </motion.button>
                 <p className="text-cyan-300/80 text-[10px] uppercase tracking-[0.3em] font-semibold">GraphRAG Engine (Mock Mode)</p>
-                <h2 className="text-xl font-medium text-white/90 mt-1">Repository Intelligence</h2>
+                <h2 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-indigo-400 mt-1">Repository Intelligence</h2>
+                <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                  <ElectricBorder color="#6366f1" borderRadius={999} chaos={0.06} displacement={8} style={{ display: 'inline-block' }}>
+                    <button 
+                      onClick={startNewChat}
+                      className="px-4 py-2 rounded-full bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 text-indigo-100 transition-all duration-200 hover:shadow-[0_0_15px_rgba(99,102,241,0.4)] active:scale-95 flex items-center gap-2 text-sm font-medium relative z-10 w-full h-full whitespace-nowrap"
+                      title="New Chat"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>
+                      <span className="hidden sm:inline">New Chat</span>
+                    </button>
+                  </ElectricBorder>
+                </div>
               </header>
 
-              <div className="flex-1 overflow-y-auto px-2 py-6 md:px-4 flex flex-col gap-4 custom-scrollbar">
+              {/* Chat History Dropdown Overlay */}
+              <AnimatePresence>
+                {isHistoryDrawerOpen && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: -15, scale: 0.95, transformOrigin: 'top left' }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -15, scale: 0.95 }}
+                    transition={{ duration: 0.2, ease: "easeOut" }}
+                    className="absolute top-[85px] left-4 w-72 max-h-[60vh] bg-black/90 backdrop-blur-3xl border border-white/10 rounded-2xl z-30 shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex flex-col overflow-hidden"
+                  >
+                    <div className="p-4 border-b border-white/10 flex justify-between items-center bg-white/5">
+                    <h3 className="text-sm font-bold text-gray-200 uppercase tracking-wider">Chat History</h3>
+                    <button onClick={() => setIsHistoryDrawerOpen(false)} className="text-gray-400 hover:text-white">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                  </div>
+                  <div className="flex-1 overflow-y-auto p-2 custom-scrollbar">
+                    {chatSessions.map(session => (
+                      <div key={session.id} className="relative group flex items-center w-full mb-1">
+                        <button
+                          onClick={() => { setCurrentSessionId(session.id); setIsHistoryDrawerOpen(false); }}
+                          className={`flex-1 text-left p-3 pr-10 rounded-lg transition-colors text-sm truncate ${currentSessionId === session.id ? 'bg-indigo-500/20 text-cyan-300 border border-indigo-500/30' : 'text-gray-400 hover:bg-white/5 hover:text-gray-200'}`}
+                        >
+                          {session.name}
+                        </button>
+                        {chatSessions.length > 1 && (
+                          <button
+                            onClick={(e) => deleteChat(e, session.id)}
+                            className="absolute right-2 p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-400/10 rounded-md opacity-0 group-hover:opacity-100 transition-all"
+                            title="Delete Chat"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <div className="flex-1 overflow-y-auto px-2 py-6 md:px-4 flex flex-col gap-3 custom-scrollbar">
                 {chatHistory.map((msg, idx) => {
                   const isBot = msg.role === 'assistant';
                   
                   if (isBot) {
                     return (
-                      <div key={idx} className="flex w-full justify-start mb-4">
+                      <div key={idx} className="flex w-full justify-start">
                         <div className="flex items-start gap-2 max-w-[90%]">
                           {/* Bot Avatar */}
                           <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-cyan-400 to-indigo-500 grid place-items-center shrink-0 shadow-[0_0_10px_rgba(6,182,212,0.3)] mt-1">
@@ -479,7 +680,11 @@ export default function Home() {
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
                               )}
                             </button>
-                            <p className="whitespace-pre-wrap text-lg">{msg.content}</p>
+                            {msg.id && msg.id === animatingMessageId ? (
+                              <TypewriterText text={msg.content} speed={8} onComplete={() => setAnimatingMessageId(null)} />
+                            ) : (
+                              <p className="whitespace-pre-wrap text-sm">{msg.content}</p>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -487,11 +692,11 @@ export default function Home() {
                   }
 
                   return (
-                    <div key={idx} className="flex w-full justify-end mb-4">
+                    <div key={idx} className="flex w-full justify-end">
                       <div className="flex items-start gap-2 max-w-[90%] ml-auto">
                         {/* User Bubble */}
                         <div className="rounded-2xl p-4 backdrop-blur-md transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-lg relative group bg-white/5 border border-white/10 text-gray-200 hover:shadow-white/10 hover:bg-white/10 rounded-tr-sm text-left">
-                          <p className="whitespace-pre-wrap text-lg">{msg.content}</p>
+                          <p className="whitespace-pre-wrap text-sm">{msg.content}</p>
                         </div>
 
                         {/* User Avatar */}
@@ -549,7 +754,7 @@ export default function Home() {
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full flex items-center justify-center text-gray-400 hover:text-cyan-400 hover:bg-white/5 transition-all duration-200 z-10"
+                    className="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full grid place-items-center text-gray-400 hover:text-cyan-400 hover:bg-white/5 transition-all duration-200 z-10"
                     title="Attach Document"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
@@ -558,7 +763,7 @@ export default function Home() {
                   <button
                     type="button"
                     onClick={() => setShowIngestModal(true)}
-                    className="absolute left-14 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full flex items-center justify-center text-gray-400 hover:text-indigo-400 hover:bg-white/5 transition-all duration-200 z-10"
+                    className="absolute left-14 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full grid place-items-center text-gray-400 hover:text-indigo-400 hover:bg-white/5 transition-all duration-200 z-10"
                     title="Ingest Repository"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
@@ -629,6 +834,7 @@ export default function Home() {
                     if (data.status === 'success') {
                       setIngestStatus(`Success! Indexed ${data.files_processed} files. Nodes: ${data.graph_summary.nodes}`);
                       fetchFiles();
+                      appendToChat({ role: 'assistant', content: `Success! The repository ${repoUrl} has been ingested and indexed into the workspace. I'm ready to answer questions about it.` });
                       setTimeout(() => {
                         setShowIngestModal(false);
                         setIngestStatus('');
@@ -649,6 +855,105 @@ export default function Home() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Clear Repo Modal */}
+      {showClearRepoModal && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="bg-[#0a0f1c] border border-white/10 p-8 rounded-3xl max-w-md w-full mx-auto my-auto shadow-[0_0_50px_rgba(239,68,68,0.15)] relative overflow-hidden">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-red-500 to-orange-500"></div>
+            <h2 className="text-2xl font-bold text-white mb-2">Delete Repository</h2>
+            <p className="text-gray-400 text-sm mb-6 leading-relaxed">Select a repository to permanently delete from the workspace and clear its vector data.</p>
+            
+            <div className="flex flex-col gap-2 max-h-60 overflow-y-auto mb-6 custom-scrollbar pr-2">
+              {fileTree.filter(n => n.type === 'directory').length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-10 opacity-60">
+                  <svg className="w-12 h-12 text-gray-500 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg>
+                  <p className="text-sm text-gray-400 italic">No repositories found.</p>
+                </div>
+              ) : (
+                fileTree.filter(n => n.type === 'directory').map((repo) => (
+                  <div key={repo.name} className="flex items-center justify-between bg-white/5 border border-white/5 rounded-xl p-3 hover:border-red-500/50 hover:bg-red-500/5 transition-all duration-200 group">
+                    <div className="flex items-center gap-3 overflow-hidden">
+                      <svg className="w-5 h-5 text-gray-500 group-hover:text-red-400 shrink-0 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg>
+                      <span className="text-sm text-gray-200 font-medium truncate group-hover:text-white transition-colors">{repo.name}</span>
+                    </div>
+                    <button
+                      onClick={() => handleDeleteRepo(repo.name)}
+                      disabled={isDeletingRepo}
+                      className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white transition-all duration-200 disabled:opacity-50 shrink-0 ml-3"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+            
+            <div className="flex w-full mt-4 justify-end gap-3">
+              {fileTree.length > 0 && (
+                <button 
+                  onClick={handleDeleteAllRepos} 
+                  className="px-6 py-2.5 rounded-xl text-sm font-medium bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 transition-all duration-200 pointer-events-auto active:scale-95"
+                  disabled={isDeletingRepo}
+                >
+                  {isDeletingRepo ? 'Deleting...' : 'Delete All'}
+                </button>
+              )}
+              <button 
+                onClick={() => setShowClearRepoModal(false)} 
+                className="px-6 py-2.5 rounded-xl text-sm font-medium bg-white/5 hover:bg-white/10 border border-white/10 text-white transition-all duration-200 pointer-events-auto active:scale-95"
+                disabled={isDeletingRepo}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Sign Out Confirmation Modal */}
+      {isSignOutConfirmOpen && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <TiltedCard
+            className="m-auto"
+            containerHeight="400px"
+            containerWidth="400px"
+            imageHeight="320px"
+            imageWidth="384px"
+            rotateAmplitude={30}
+            scaleOnHover={1.05}
+            showMobileWarning={false}
+            showTooltip={false}
+            displayOverlayContent={true}
+            overlayContent={
+              <div className="bg-[#0f172a] border border-white/10 rounded-2xl p-8 w-[384px] h-[320px] shadow-[0_0_50px_rgba(244,63,94,0.15)] transform transition-all animate-in zoom-in-95 duration-200 mx-auto flex flex-col items-center text-center">
+                
+                <div className="w-16 h-16 rounded-full bg-red-500/10 grid place-items-center mb-5 border border-red-500/20 shadow-[0_0_20px_rgba(239,68,68,0.2)] shrink-0">
+                  <svg className="w-8 h-8 text-red-400 translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                </div>
+
+                <h3 className="text-xl font-bold text-white mb-2">Ready to leave?</h3>
+                <p className="text-gray-400 text-sm mb-6 leading-relaxed">Are you sure you want to sign out? Your repository intelligence and chat history will be preserved securely.</p>
+                
+                <div className="flex justify-center gap-3 w-full mt-auto">
+                  <button 
+                    onClick={() => setIsSignOutConfirmOpen(false)}
+                    className="flex-1 py-2.5 rounded-xl text-sm font-medium text-gray-300 hover:text-white bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/10 transition-all duration-200 pointer-events-auto"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    onClick={() => { localStorage.removeItem('isAuthenticated'); setLoginStatus('unauthenticated'); setIsSignOutConfirmOpen(false); }}
+                    className="flex-1 py-2.5 rounded-xl text-sm font-medium bg-gradient-to-r from-red-500/80 to-rose-600/80 hover:from-red-500 hover:to-rose-600 text-white shadow-[0_0_15px_rgba(239,68,68,0.3)] transition-all duration-200 active:scale-95 pointer-events-auto"
+                  >
+                    Sign Out
+                  </button>
+                </div>
+              </div>
+            }
+          />
         </div>
       )}
 

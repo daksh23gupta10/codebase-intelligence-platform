@@ -26,3 +26,15 @@ class VectorDB:
         except Exception as e:
             print(f"ChromaDB Search Error: {e}")
             return {"documents": [[]], "metadatas": [[]]}
+
+    def delete_repo(self, repo_name: str):
+        try:
+            # We can't easily query by prefix in Chroma where clause, so we get all and filter
+            all_data = self.collection.get()
+            if not all_data or not all_data.get('ids'): return
+            ids_to_delete = [doc_id for doc_id in all_data['ids'] if doc_id.startswith(f"{repo_name}/")]
+            if ids_to_delete:
+                self.collection.delete(ids=ids_to_delete)
+                print(f"Deleted {len(ids_to_delete)} vectors for repo {repo_name}")
+        except Exception as e:
+            print(f"ChromaDB Delete Error: {e}")
