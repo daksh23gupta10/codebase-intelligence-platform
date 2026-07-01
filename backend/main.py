@@ -275,6 +275,32 @@ def list_files():
     tree = get_file_tree(workspaces_dir)
     return {"status": "success", "files": tree}
 
+from fastapi import Query
+
+@app.get("/api/file/content")
+def get_file_content(path: str = Query(...)):
+    workspaces_dir = os.path.join(os.getcwd(), "workspaces")
+    # Resolve the full path securely to prevent directory traversal
+    full_path = os.path.abspath(os.path.join(workspaces_dir, path))
+    if not full_path.startswith(os.path.abspath(workspaces_dir)):
+        return {"status": "error", "message": "Invalid path"}
+    if not os.path.exists(full_path) or not os.path.isfile(full_path):
+        return {"status": "error", "message": "File not found"}
+    
+    try:
+        with open(full_path, "r", encoding="utf-8") as f:
+            content = f.read(50000) # Read up to 50KB to avoid massive payloads
+        
+        stats = os.stat(full_path)
+        return {
+            "status": "success",
+            "content": content,
+            "size": stats.st_size,
+            "modified": stats.st_mtime * 1000 # JS ms format
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
 import shutil
 import stat
 

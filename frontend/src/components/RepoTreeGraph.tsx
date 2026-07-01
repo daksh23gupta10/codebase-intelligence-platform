@@ -88,6 +88,10 @@ export default function RepoTreeGraph({ fileTree }: { fileTree: FileNode[] }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [colorMode, setColorMode] = useState<'folder' | 'type'>('folder');
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
+  
+  // Real file data state
+  const [fileDetails, setFileDetails] = useState<{content: string, size: number, modified: number} | null>(null);
+  const [isLoadingDetails, setIsLoadingDetails] = useState(false);
 
   // Resize observer to keep canvas full width/height
   useEffect(() => {
@@ -211,10 +215,16 @@ export default function RepoTreeGraph({ fileTree }: { fileTree: FileNode[] }) {
   // Physics tuning and collision
   useEffect(() => {
     if (fgRef.current) {
-      fgRef.current.d3Force('collide', forceCollide((node: any) => node.val + 10)); // prevent overlap
-      fgRef.current.d3Force('charge').strength(-200); // push apart strongly
+      // Increase padding based on node size
+      fgRef.current.d3Force('collide', forceCollide().radius((node: any) => node.val + 25).iterations(5));
+      // Increase repulsion charge to push clusters apart
+      fgRef.current.d3Force('charge').strength(-600);
+      // Increase link distance so nodes aren't pulled too closely together
+      fgRef.current.d3Force('link').distance(80);
+      // Re-heat simulation to apply new forces
+      fgRef.current.d3ReheatSimulation();
     }
-  }, []);
+  }, [graphData]);
 
   // Zoom to fit on load
   useEffect(() => {
@@ -225,22 +235,43 @@ export default function RepoTreeGraph({ fileTree }: { fileTree: FileNode[] }) {
     }
   }, [graphData]);
 
-  // Handle zooming to matching nodes if search is active
-  useEffect(() => {
-    if (searchQuery && fgRef.current) {
-      const match = graphData.nodes.find(n => n.name.toLowerCase().includes(searchQuery.toLowerCase()));
-      if (match) {
-        fgRef.current.centerAt(match.x, match.y, 1000);
-        fgRef.current.zoom(4, 1000);
-      }
-    }
+  // Removed auto-zoom effect on search query. Instead, handled by clicking search results.
+
+  const searchResults = useMemo(() => {
+    if (!searchQuery) return [];
+    return graphData.nodes
+      .filter(n => n.name.toLowerCase().includes(searchQuery.toLowerCase()))
+      .slice(0, 10); // Limit to top 10 results
   }, [searchQuery, graphData]);
 
-  const handleNodeClick = useCallback((node: any) => {
+  const handleNodeClick = useCallback(async (node: any) => {
     setSelectedNode(node);
+    setFileDetails(null);
     if (fgRef.current) {
       fgRef.current.centerAt(node.x, node.y, 1000);
       fgRef.current.zoom(6, 1000);
+    }
+
+    if (node.type === 'file') {
+      setIsLoadingDetails(true);
+      try {
+        const relativePath = node.id.replace(/^root\//, '');
+        const res = await fetch(`http://localhost:8080/api/file/content?path=${encodeURIComponent(relativePath)}`);
+        const data = await res.json();
+        if (data.status === 'success') {
+          setFileDetails({
+            content: data.content,
+            size: data.size,
+            modified: data.modified
+          });
+        } else {
+          setFileDetails({ content: 'Error loading file: ' + data.message, size: 0, modified: 0 });
+        }
+      } catch (err) {
+        setFileDetails({ content: 'Failed to fetch file details.', size: 0, modified: 0 });
+      } finally {
+        setIsLoadingDetails(false);
+      }
     }
   }, []);
 
@@ -255,17 +286,43 @@ export default function RepoTreeGraph({ fileTree }: { fileTree: FileNode[] }) {
 
         {/* Search Bar */}
         <div className="pointer-events-auto">
-          <div className="relative flex items-center">
-            <svg className="absolute left-4 w-4 h-4 text-cyan-400 z-10 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-            <input 
-              type="text" 
-              placeholder="Search file or folder..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-11 pr-4 py-2 w-[300px] bg-black/60 backdrop-blur-md border border-white/10 rounded-full text-sm text-white focus:outline-none focus:border-cyan-400/50 focus:ring-1 focus:ring-cyan-400/50 shadow-[0_0_15px_rgba(0,0,0,0.5)] transition-all relative z-0"
-            />
+          <div className="relative flex flex-col items-center">
+            <div className="relative flex items-center w-full">
+              <svg className="absolute left-4 w-4 h-4 text-cyan-400 z-10 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input 
+                type="text" 
+                placeholder="Search file or folder..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-11 pr-4 py-2 w-[400px] bg-black/60 backdrop-blur-md border border-white/10 rounded-full text-sm text-white focus:outline-none focus:border-cyan-400/50 focus:ring-1 focus:ring-cyan-400/50 shadow-[0_0_15px_rgba(0,0,0,0.5)] transition-all relative z-0"
+              />
+            </div>
+
+            {/* Search Results Dropdown */}
+            {searchQuery && searchResults.length > 0 && (
+              <div className="absolute top-full mt-2 w-full max-h-[300px] overflow-y-auto custom-scrollbar bg-black/80 backdrop-blur-md border border-white/10 rounded-xl shadow-[0_0_20px_rgba(0,0,0,0.5)] z-40">
+                {searchResults.map((result) => (
+                  <button
+                    key={result.id}
+                    onClick={() => {
+                      setSearchQuery(result.name);
+                      handleNodeClick(result);
+                    }}
+                    className="w-full text-left px-4 py-3 hover:bg-white/10 border-b border-white/5 last:border-b-0 transition-colors flex flex-col"
+                  >
+                    <span className="text-white font-medium">{result.name}</span>
+                    <span className="text-gray-500 text-xs truncate w-full">{result.id}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+            {searchQuery && searchResults.length === 0 && (
+              <div className="absolute top-full mt-2 w-full bg-black/80 backdrop-blur-md border border-white/10 rounded-xl shadow-[0_0_20px_rgba(0,0,0,0.5)] z-40 p-4 text-center text-sm text-gray-400">
+                No matching files or folders found.
+              </div>
+            )}
           </div>
         </div>
 
@@ -341,11 +398,27 @@ export default function RepoTreeGraph({ fileTree }: { fileTree: FileNode[] }) {
                 <div className="space-y-2 text-sm text-gray-300">
                   <div className="flex justify-between border-b border-white/5 pb-2">
                     <span className="text-gray-500">Size</span>
-                    <span>{selectedNode.type === 'directory' ? 'N/A' : `${(Math.random() * 50 + 1).toFixed(1)} KB`}</span>
+                    <span>
+                      {selectedNode.type === 'directory' 
+                        ? 'N/A' 
+                        : isLoadingDetails 
+                          ? 'Loading...' 
+                          : fileDetails 
+                            ? `${(fileDetails.size / 1024).toFixed(1)} KB` 
+                            : 'Unknown'}
+                    </span>
                   </div>
                   <div className="flex justify-between border-b border-white/5 pb-2">
                     <span className="text-gray-500">Last Modified</span>
-                    <span>{new Date(Date.now() - Math.random() * 10000000000).toLocaleDateString()}</span>
+                    <span>
+                      {selectedNode.type === 'directory'
+                        ? 'N/A'
+                        : isLoadingDetails
+                          ? 'Loading...'
+                          : fileDetails
+                            ? new Date(fileDetails.modified).toLocaleDateString()
+                            : 'Unknown'}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -354,16 +427,15 @@ export default function RepoTreeGraph({ fileTree }: { fileTree: FileNode[] }) {
                 <div>
                   <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Preview</h4>
                   <div className="bg-[#0a0a0a] border border-white/5 rounded-lg p-3 overflow-hidden">
-                    <pre className="text-[10px] text-gray-400 font-mono leading-relaxed opacity-50">
-{`// Auto-generated preview
-import { dependencies } from 'core';
-
-export const init = () => {
-  console.log("Initializing ${selectedNode.name}...");
-  // Implementation details...
-};
-`}
-                    </pre>
+                    {isLoadingDetails ? (
+                      <div className="flex items-center justify-center p-4">
+                        <div className="w-5 h-5 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin"></div>
+                      </div>
+                    ) : (
+                      <pre className="text-[10px] text-gray-300 font-mono leading-relaxed opacity-90 overflow-x-auto whitespace-pre-wrap max-h-[300px] custom-scrollbar">
+{fileDetails?.content || 'No preview available.'}
+                      </pre>
+                    )}
                   </div>
                 </div>
               )}
