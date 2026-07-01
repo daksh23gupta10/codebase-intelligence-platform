@@ -13,7 +13,7 @@ export default function TypewriterText({ text, speed = 15, onComplete }: { text:
   useEffect(() => {
     if (currentIndex < text.length) {
       const timeout = setTimeout(() => {
-        setDisplayedText(prev => prev + text[currentIndex]);
+        setDisplayedText(text.substring(0, currentIndex + 1));
         setCurrentIndex(prev => prev + 1);
       }, speed);
       return () => clearTimeout(timeout);
