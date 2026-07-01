@@ -7,7 +7,35 @@ import BorderGlow from '@/components/BorderGlow';
 import CountUp from '@/components/CountUp';
 import TextPressure from '@/components/TextPressure';
 
+const FileTreeNode = ({ node }) => {
+  const [isOpen, setIsOpen] = React.useState(false);
+  const isDir = node.type === 'directory';
+
+  return (
+    <div className="pl-2">
+      <div 
+        className={`flex items-center gap-2 py-1.5 px-2 rounded-md hover:bg-white/5 cursor-pointer text-xs ${isDir ? 'text-indigo-300 font-semibold' : 'text-gray-300 hover:text-cyan-300 transition-colors'}`}
+        onClick={() => isDir && setIsOpen(!isOpen)}
+      >
+        {isDir ? (
+           isOpen ? <svg className="w-4 h-4 text-indigo-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg> 
+                  : <svg className="w-4 h-4 text-indigo-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
+        ) : (
+          <svg className="w-4 h-4 text-cyan-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+        )}
+        <span className="truncate">{node.name}</span>
+      </div>
+      {isDir && isOpen && node.children && (
+        <div className="border-l border-white/10 ml-2">
+          {node.children.map((child, idx) => <FileTreeNode key={idx} node={child} />)}
+        </div>
+      )}
+    </div>
+  );
+};
+
 export default function Home() {
+  const [fileTree, setFileTree] = useState([]);
   const [query, setQuery] = useState('');
   const [chatHistory, setChatHistory] = useState([
     { role: 'assistant', content: "Hello, I'm your Codebase AI. Add your repository file." }
@@ -30,6 +58,24 @@ export default function Home() {
   const progressBarRef = React.useRef(null);
   const [isMounted, setIsMounted] = useState(false);
   const [loadingComplete, setLoadingComplete] = useState(false);
+
+  const fetchFiles = async () => {
+    try {
+      const res = await fetch('http://localhost:8080/api/files');
+      const data = await res.json();
+      if (data.status === 'success') {
+        setFileTree(data.files);
+      }
+    } catch (e) {
+      console.error('Failed to fetch file tree:', e);
+    }
+  };
+
+  useEffect(() => {
+    if (loginStatus === 'authenticated') {
+      fetchFiles();
+    }
+  }, [loginStatus]);
 
   // Keyboard shortcut to enter workspace
   useEffect(() => {
@@ -369,9 +415,34 @@ export default function Home() {
             </div>
           </nav>
 
-          {/* Centered Chat Window */}
-          <div className="absolute inset-0 z-10 flex items-center justify-center h-full w-full p-4 pt-24 animate-in fade-in zoom-in duration-500">
-            <div className="flex flex-col w-full max-w-4xl mx-auto my-auto h-[75vh] max-h-[800px] bg-black/40 backdrop-blur-2xl border border-white/10 rounded-3xl shadow-[0_0_50px_rgba(6,182,212,0.15)] overflow-hidden">
+          {/* Dashboard Layout */}
+          <div className="absolute inset-0 z-10 flex h-full w-full p-6 pt-24 gap-6 animate-in fade-in zoom-in duration-500 max-w-[1600px] mx-auto">
+            
+            {/* Sidebar File Explorer */}
+            <div className="hidden md:flex w-72 lg:w-80 shrink-0 flex-col h-[85vh] max-h-[1000px] my-auto bg-black/40 backdrop-blur-2xl border border-white/10 rounded-3xl shadow-[0_0_50px_rgba(6,182,212,0.15)] overflow-hidden">
+              <header className="p-5 border-b border-white/5 bg-white/5 flex items-center justify-between">
+                <div>
+                  <h2 className="text-sm font-medium text-white/90">Workspace Files</h2>
+                  <p className="text-[10px] text-gray-500 uppercase tracking-widest mt-0.5">Vector Indexed</p>
+                </div>
+                <button onClick={fetchFiles} className="text-gray-400 hover:text-cyan-400 transition-colors" title="Refresh">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                </button>
+              </header>
+              <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+                {fileTree.length === 0 ? (
+                  <div className="text-center mt-10">
+                    <p className="text-gray-500 text-xs italic">No workspace loaded.</p>
+                    <button onClick={() => setShowIngestModal(true)} className="mt-4 text-xs text-cyan-400 hover:text-cyan-300 underline">Ingest Repository</button>
+                  </div>
+                ) : (
+                  fileTree.map((node, idx) => <FileTreeNode key={idx} node={node} />)
+                )}
+              </div>
+            </div>
+
+            {/* Main Chat Window */}
+            <div className="flex flex-col flex-1 mx-auto my-auto h-[85vh] max-h-[1000px] bg-black/40 backdrop-blur-2xl border border-white/10 rounded-3xl shadow-[0_0_50px_rgba(6,182,212,0.15)] overflow-hidden">
               
               <header className="p-6 text-center border-b border-white/5 bg-white/5">
                 <p className="text-cyan-300/80 text-[10px] uppercase tracking-[0.3em] font-semibold">GraphRAG Engine (Mock Mode)</p>
@@ -408,7 +479,7 @@ export default function Home() {
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
                               )}
                             </button>
-                            <p className="whitespace-pre-wrap">{msg.content}</p>
+                            <p className="whitespace-pre-wrap text-lg">{msg.content}</p>
                           </div>
                         </div>
                       </div>
@@ -420,7 +491,7 @@ export default function Home() {
                       <div className="flex items-start gap-2 max-w-[90%] ml-auto">
                         {/* User Bubble */}
                         <div className="rounded-2xl p-4 backdrop-blur-md transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-lg relative group bg-white/5 border border-white/10 text-gray-200 hover:shadow-white/10 hover:bg-white/10 rounded-tr-sm text-left">
-                          <p className="whitespace-pre-wrap">{msg.content}</p>
+                          <p className="whitespace-pre-wrap text-lg">{msg.content}</p>
                         </div>
 
                         {/* User Avatar */}
@@ -557,12 +628,13 @@ export default function Home() {
                     const data = await res.json();
                     if (data.status === 'success') {
                       setIngestStatus(`Success! Indexed ${data.files_processed} files. Nodes: ${data.graph_summary.nodes}`);
+                      fetchFiles();
                       setTimeout(() => {
                         setShowIngestModal(false);
                         setIngestStatus('');
                       }, 3000);
                     } else {
-                      setIngestStatus('Error: Failed to process repository.');
+                      setIngestStatus(`Error: ${data.message || 'Failed to process repository.'}`);
                     }
                   } catch (e) {
                     setIngestStatus('Error: Could not connect to backend server.');

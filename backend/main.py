@@ -194,7 +194,13 @@ async def ingest_codebase(request: IngestRequest):
     print(f"Starting ingestion for: {request.repo_url_or_path}")
     
     # 1. Clone/Copy Repository
-    repo_path = ingester.ingest_repository(request.repo_url_or_path)
+    try:
+        repo_path = ingester.ingest_repository(request.repo_url_or_path)
+    except Exception as e:
+        print(f"Error cloning repository: {e}")
+        return {"status": "error", "message": "Failed to clone repository. Make sure the URL is public and valid."}
+    
+    repo_name = repo_path.name
     
     files_processed = 0
     # 2. Traverse files
@@ -208,24 +214,26 @@ async def ingest_codebase(request: IngestRequest):
                 code_content = f.read()
             
             rel_path = str(file_path.relative_to(repo_path))
+            # Prefix with repo_name to prevent collisions between multiple repos
+            full_path = f"{repo_name}/{rel_path}"
             
             # 4. Add to Vector DB
             vector_db.add_document(
-                doc_id=rel_path,
+                doc_id=full_path,
                 text=code_content,
-                metadata={"file": rel_path}
+                metadata={"file": full_path}
             )
             
             # 5. Add to Knowledge Graph
-            graph_db.add_file(rel_path)
+            graph_db.add_file(full_path)
             if symbols:
                 for func in symbols["functions"]:
-                    graph_db.add_symbol(rel_path, func, "function")
+                    graph_db.add_symbol(full_path, func, "function")
                 for cls in symbols["classes"]:
-                    graph_db.add_symbol(rel_path, cls, "class")
+                    graph_db.add_symbol(full_path, cls, "class")
                 for imp in symbols["imports"]:
                     # Naive import linking
-                    graph_db.add_import(rel_path, imp)
+                    graph_db.add_import(full_path, imp)
             
             files_processed += 1
         except Exception as e:
@@ -237,6 +245,35 @@ async def ingest_codebase(request: IngestRequest):
         "files_processed": files_processed,
         "graph_summary": summary
     }
+
+def get_file_tree(path):
+    tree = []
+    if not os.path.exists(path):
+        return tree
+    for item in os.listdir(path):
+        if item in {".git", "node_modules", "venv", "__pycache__", "dist", "build", ".next"}:
+            continue
+        item_path = os.path.join(path, item)
+        if os.path.isdir(item_path):
+            tree.append({
+                "name": item,
+                "type": "directory",
+                "children": get_file_tree(item_path)
+            })
+        else:
+            tree.append({
+                "name": item,
+                "type": "file"
+            })
+    # Sort: directories first, then files
+    tree.sort(key=lambda x: (x["type"] == "file", x["name"]))
+    return tree
+
+@app.get("/api/files")
+def list_files():
+    workspaces_dir = os.path.join(os.getcwd(), "workspaces")
+    tree = get_file_tree(workspaces_dir)
+    return {"status": "success", "files": tree}
 
 @app.post("/api/query")
 async def handle_query(request: QueryRequest):
