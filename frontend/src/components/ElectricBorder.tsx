@@ -313,7 +313,7 @@ const ElectricBorder = ({
           }}
         />
       </div>
-      <div className="relative rounded-[inherit] z-[1] h-full w-full">{children}</div>
+      <div className="relative rounded-[inherit] z-[1] flex items-center justify-center">{children}</div>
     </div>
   );
 };

@@ -1,13 +1,27 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import RepoTreeGraph from '@/components/RepoTreeGraph';
 import NavBar from '@/components/NavBar';
+import { motion, AnimatePresence } from 'motion/react';
 
 export default function RepoTreePage() {
   const [allRepos, setAllRepos] = useState<any[]>([]);
   const [selectedRepoName, setSelectedRepoName] = useState<string>('All');
   const [loading, setLoading] = useState(true);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Compute the file tree to display based on selected repository
   const displayTree = React.useMemo(() => {
@@ -55,11 +69,16 @@ export default function RepoTreePage() {
           </div>
         ) : allRepos.length === 0 ? (
           <div className="w-full h-full flex flex-col items-center justify-center bg-black/40 backdrop-blur-2xl border border-white/10 rounded-3xl shadow-[0_0_50px_rgba(6,182,212,0.15)]">
-            <div className="w-14 h-14 rounded-full bg-cyan-500/10 grid place-items-center border border-cyan-500/20 shadow-[0_0_30px_rgba(6,182,212,0.15)] mb-4">
-              <svg className="w-6 h-6 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-indigo-500/20 flex items-center justify-center border border-cyan-500/30 shadow-[0_0_40px_rgba(6,182,212,0.2)] mb-2 relative group">
+              <div className="absolute inset-0 bg-cyan-400/20 blur-xl rounded-full animate-pulse" />
+              <svg className="w-8 h-8 text-cyan-300 relative z-10 transition-transform duration-500 group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.5">
+                <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+                <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+                <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+              </svg>
             </div>
-            <p className="text-gray-400 text-sm">Your workspace is empty.</p>
-            <p className="text-gray-500 text-xs mt-2">Go back to chat and ingest a repository first.</p>
+            <p className="text-gray-300 text-[14px] text-center px-4 font-medium">Your workspace is empty.</p>
+            <p className="text-gray-500 text-xs text-center px-4 mb-4">Go back to chat and add a codebase first.</p>
           </div>
         ) : displayTree.length === 0 ? (
           <div className="w-full h-full flex flex-col items-center justify-center bg-black/40 backdrop-blur-2xl border border-white/10 rounded-3xl shadow-[0_0_50px_rgba(6,182,212,0.15)]">
@@ -69,22 +88,56 @@ export default function RepoTreePage() {
           <div className="w-full h-full bg-black/40 backdrop-blur-2xl border border-white/10 rounded-3xl shadow-[0_0_50px_rgba(6,182,212,0.15)] overflow-hidden relative">
             
             {/* Repository Selector Dropdown (Moved inside graph container) */}
-            <div className="absolute top-4 left-6 z-30 flex items-center gap-3 bg-black/60 backdrop-blur-md border border-white/10 rounded-full px-4 py-2 shadow-[0_0_15px_rgba(0,0,0,0.5)]">
-              <svg className="w-4 h-4 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-              </svg>
-              <span className="text-gray-400 text-xs font-bold uppercase tracking-wider">Workspace:</span>
-              <select 
-                value={selectedRepoName}
-                onChange={(e) => setSelectedRepoName(e.target.value)}
-                className="bg-transparent text-white text-sm font-bold focus:outline-none cursor-pointer appearance-none pr-6"
-                style={{ backgroundImage: 'url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2306b6d4%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.2em top 50%', backgroundSize: '0.65em auto' }}
+            <div className="absolute top-4 left-6 z-30" ref={dropdownRef}>
+              <div 
+                className="flex items-center gap-3 bg-black/60 backdrop-blur-md border border-white/10 rounded-full px-4 py-2 shadow-[0_0_15px_rgba(0,0,0,0.5)] cursor-pointer hover:bg-black/80 transition-colors"
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
               >
-                <option value="All" className="bg-gray-900">All Repositories</option>
-                {allRepos.map(repo => (
-                  <option key={repo.name} value={repo.name} className="bg-gray-900">{repo.name}</option>
-                ))}
-              </select>
+                <svg className="w-4 h-4 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                </svg>
+                <span className="text-gray-400 text-xs font-bold uppercase tracking-wider">Workspace:</span>
+                <span className="text-white text-sm font-bold min-w-[120px]">
+                  {selectedRepoName === 'All' ? 'All Repositories' : selectedRepoName}
+                </span>
+                <svg className={`w-4 h-4 text-cyan-400 transition-transform duration-300 ${isDropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+
+              <AnimatePresence>
+                {isDropdownOpen && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                    transition={{ duration: 0.2, ease: "easeOut" }}
+                    className="absolute top-full left-0 mt-2 w-full min-w-[200px] bg-[#0a0a0a]/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col z-50"
+                  >
+                    <button
+                      className={`px-4 py-3 text-sm text-left transition-colors ${selectedRepoName === 'All' ? 'bg-cyan-500/20 text-cyan-300 font-bold' : 'text-gray-300 hover:bg-white/5'}`}
+                      onClick={() => {
+                        setSelectedRepoName('All');
+                        setIsDropdownOpen(false);
+                      }}
+                    >
+                      All Repositories
+                    </button>
+                    {allRepos.map(repo => (
+                      <button
+                        key={repo.name}
+                        className={`px-4 py-3 text-sm text-left transition-colors ${selectedRepoName === repo.name ? 'bg-cyan-500/20 text-cyan-300 font-bold' : 'text-gray-300 hover:bg-white/5'}`}
+                        onClick={() => {
+                          setSelectedRepoName(repo.name);
+                          setIsDropdownOpen(false);
+                        }}
+                      >
+                        {repo.name}
+                      </button>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             {/* Control Instructions Overlay */}

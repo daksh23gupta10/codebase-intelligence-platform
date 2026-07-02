@@ -13,7 +13,7 @@ export default function NavBar({ onSignOut }: NavBarProps) {
 
   const getLinkClass = (path: string) => {
     const isActive = pathname === path;
-    const baseClass = "px-6 py-2 rounded-full border transition-all duration-200 hover:-translate-y-0.5 active:scale-95 active:translate-y-0 inline-block w-full h-full relative z-10 font-medium whitespace-nowrap";
+    const baseClass = "px-6 py-2 rounded-full border transition-all duration-200 hover:-translate-y-0.5 active:scale-95 active:translate-y-0 flex items-center justify-center relative z-10 font-medium whitespace-nowrap";
     if (isActive) {
       return `${baseClass} bg-white/10 border-cyan-400/50 text-cyan-300 drop-shadow-[0_0_8px_rgba(34,211,238,0.8)] shadow-[0_0_15px_rgba(6,182,212,0.3)]`;
     } else {
@@ -38,17 +38,17 @@ export default function NavBar({ onSignOut }: NavBarProps) {
         </span>
       </div>
       <div className="flex items-center gap-8 text-sm font-medium">
-        <ElectricBorder color="#06b6d4" borderRadius={999} chaos={0.06} displacement={8} style={{ display: 'inline-block' }}>
+        <ElectricBorder color="#06b6d4" borderRadius={999} chaos={0.03} displacement={8} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
           <a href="/" className={getLinkClass('/')}>Home</a>
         </ElectricBorder>
-        <ElectricBorder color="#06b6d4" borderRadius={999} chaos={0.06} displacement={8} style={{ display: 'inline-block' }}>
+        <ElectricBorder color="#06b6d4" borderRadius={999} chaos={0.03} displacement={8} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
           <a href="/tree" className={getLinkClass('/tree')}>Repo Tree</a>
         </ElectricBorder>
-        <ElectricBorder color="#06b6d4" borderRadius={999} chaos={0.06} displacement={8} style={{ display: 'inline-block' }}>
+        <ElectricBorder color="#06b6d4" borderRadius={999} chaos={0.03} displacement={8} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
           <a href="/about" className={getLinkClass('/about')}>About Us</a>
         </ElectricBorder>
         <div className="w-px h-8 bg-cyan-400 rounded-full shadow-[0_0_12px_rgba(34,211,238,0.8)]" />
-        <ElectricBorder color="#06b6d4" borderRadius={999} chaos={0.06} displacement={8} style={{ display: 'inline-block' }}>
+        <ElectricBorder color="#06b6d4" borderRadius={999} chaos={0.03} displacement={8} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
           <button 
             onClick={() => {
               if (onSignOut) {
@@ -58,7 +58,7 @@ export default function NavBar({ onSignOut }: NavBarProps) {
                 window.location.href = '/';
               }
             }} 
-            className="px-6 py-2 rounded-full bg-black/40 hover:bg-white/10 border border-white/10 text-white transition-all duration-200 hover:shadow-[0_0_15px_rgba(6,182,212,0.3)] hover:-translate-y-0.5 active:scale-95 active:translate-y-0 relative z-10 font-medium whitespace-nowrap"
+            className="px-6 py-2 rounded-full bg-black/40 hover:bg-white/10 border border-white/10 text-white transition-all duration-200 hover:shadow-[0_0_15px_rgba(6,182,212,0.3)] hover:-translate-y-0.5 active:scale-95 active:translate-y-0 relative z-10 font-medium whitespace-nowrap flex items-center justify-center"
           >
             Sign Out
           </button>

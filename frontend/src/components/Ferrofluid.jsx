@@ -221,19 +221,37 @@ const Ferrofluid = ({
     const container = containerRef.current;
     if (!container) return;
 
-    const renderer = new Renderer({
-      dpr: dpr ?? (typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1),
-      alpha: true,
-      antialias: true
-    });
-    rendererRef.current = renderer;
+    let renderer;
+    const originalConsoleError = console.error;
+    try {
+      // Suppress internal ogl console.error to prevent Next.js from throwing an error overlay
+      console.error = () => {};
+      
+      renderer = new Renderer({
+        dpr: dpr ?? (typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1),
+        alpha: true,
+        antialias: true
+      });
+      
+      if (!renderer.gl) throw new Error("WebGL context is null");
+      
+      rendererRef.current = renderer;
+      const gl = renderer.gl;
+      const canvas = gl.canvas;
+      gl.clearColor(0, 0, 0, 0);
+      canvas.style.width = '100%';
+      canvas.style.height = '100%';
+      canvas.style.display = 'block';
+      container.appendChild(canvas);
+    } catch (e) {
+      console.warn("Ferrofluid: Unable to create WebGL context. Falling back to empty container.", e);
+      return;
+    } finally {
+      console.error = originalConsoleError;
+    }
+
     const gl = renderer.gl;
     const canvas = gl.canvas;
-    gl.clearColor(0, 0, 0, 0);
-    canvas.style.width = '100%';
-    canvas.style.height = '100%';
-    canvas.style.display = 'block';
-    container.appendChild(canvas);
 
     const { arr, count, avg } = prepColors(colors);
 

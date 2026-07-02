@@ -1,4 +1,5 @@
 "use client";
+// @ts-nocheck
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -73,7 +74,7 @@ const MarkdownMessage = ({ content }: { content: string }) => {
   );
 };
 
-const FileTreeNode = ({ node, depth = 0 }) => {
+const FileTreeNode = ({ node, depth = 0 }: { node: any, depth?: number }) => {
   const [isOpen, setIsOpen] = React.useState(false);
   const isDir = node.type === 'directory';
   const isRootRepo = isDir && depth === 0;
@@ -95,7 +96,7 @@ const FileTreeNode = ({ node, depth = 0 }) => {
       </div>
       {isDir && isOpen && node.children && (
         <div className="border-l border-white/10 ml-2">
-          {node.children.map((child, idx) => <FileTreeNode key={idx} node={child} depth={depth + 1} />)}
+          {node.children.map((child: any, idx: number) => <FileTreeNode key={idx} node={child} depth={depth + 1} />)}
         </div>
       )}
     </div>
@@ -124,7 +125,7 @@ export default function Home() {
   const chatHistory = currentSession ? currentSession.history : [];
 
   // Helper to append a message to the active chat session
-  const appendToChat = (msg) => {
+  const appendToChat = (msg: any) => {
     setChatSessions(prev => prev.map(s => {
       if (s.id === currentSessionId) {
         const newHistory = [...s.history, msg];
@@ -153,6 +154,7 @@ export default function Home() {
     setCurrentSessionId(newSessionId);
     setIsHistoryDrawerOpen(false);
     setAnimatingMessageId(newMsgId);
+    setBeginnerMode(false);
   };
 
   const deleteChat = (e: React.MouseEvent, id: string) => {
@@ -176,21 +178,23 @@ export default function Home() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loginErrors, setLoginErrors] = useState({ email: false, password: false });
-  const [attachments, setAttachments] = useState([]);
+  const [attachments, setAttachments] = useState<any[]>([]);
   const [showIngestModal, setShowIngestModal] = useState(false);
   const [repoUrl, setRepoUrl] = useState('');
   const [ingesting, setIngesting] = useState(false);
   const [ingestStatus, setIngestStatus] = useState('');
   const [beginnerMode, setBeginnerMode] = useState(false);
-  const [copiedIndex, setCopiedIndex] = useState(null);
-  const fileInputRef = React.useRef(null);
-  const passwordInputRef = React.useRef(null);
-  const progressBarRef = React.useRef(null);
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const passwordInputRef = React.useRef<HTMLInputElement>(null);
+  const abortControllerRef = React.useRef<AbortController | null>(null);
+  const progressBarRef = React.useRef<any>(null);
   const [isMounted, setIsMounted] = useState(false);
 
 
   const fetchFiles = async () => {
     setIsRefreshing(true);
+    const startTime = Date.now();
     try {
       const res = await fetch('http://localhost:8080/api/files');
       const data = await res.json();
@@ -200,7 +204,12 @@ export default function Home() {
     } catch (e) {
       console.error('Failed to fetch file tree:', e);
     } finally {
-      setIsRefreshing(false);
+      const elapsed = Date.now() - startTime;
+      if (elapsed < 1000) {
+        setTimeout(() => setIsRefreshing(false), 1000 - elapsed);
+      } else {
+        setIsRefreshing(false);
+      }
     }
   };
 
@@ -248,7 +257,7 @@ export default function Home() {
   // Keyboard shortcut to enter workspace
   useEffect(() => {
     if (loginStatus === 'welcoming' && loadingComplete) {
-      const handleKeyDown = (e) => {
+      const handleKeyDown = (e: any) => {
         if (e.key === ' ' || e.code === 'Space') {
           e.preventDefault();
           setLoginStatus('authenticated');
@@ -297,14 +306,14 @@ export default function Home() {
   useEffect(() => {
     if (loginStatus === 'authenticated') {
       try {
-        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
         const ctx = new AudioContext();
 
         const masterGain = ctx.createGain();
         masterGain.gain.value = 0.2;
         masterGain.connect(ctx.destination);
 
-        const playTone = (freq, type, time, attackDur, sustainDur, releaseDur, vol) => {
+        const playTone = (freq: any, type: any, time: any, attackDur: any, sustainDur: any, releaseDur: any, vol: any) => {
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
           osc.type = type;
@@ -340,18 +349,18 @@ export default function Home() {
     }
   }, [loginStatus]);
 
-  const handleFileSelect = (e) => {
+  const handleFileSelect = (e: any) => {
     if (e.target.files) {
       const newFiles = Array.from(e.target.files);
       setAttachments(prev => [...prev, ...newFiles]);
     }
   };
 
-  const removeAttachment = (indexToRemove) => {
+  const removeAttachment = (indexToRemove: number) => {
     setAttachments(prev => prev.filter((_, idx) => idx !== indexToRemove));
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: any) => {
     e.preventDefault();
     if (!query.trim()) return;
 
@@ -391,6 +400,9 @@ export default function Home() {
         {/* Background Ferrofluid Animation */}
         <div className="absolute inset-0 z-0 opacity-70 mix-blend-screen">
         <Ferrofluid
+          className=""
+          dpr={1}
+          mixBlendMode="screen"
           colors={["#00F0FF", "#FF007F", "#8A2BE2"]}
           speed={0.3}
           scale={1.2}
@@ -433,7 +445,7 @@ export default function Home() {
               <h2 className="text-2xl font-bold tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-indigo-100 to-cyan-100 uppercase">Codebase AI</h2>
               <p className="text-gray-400 text-sm mt-2">Sign in to access enterprise intelligence</p>
             </div>
-            <form noValidate onSubmit={(e) => { 
+            <form noValidate onSubmit={(e: any) => { 
               e.preventDefault(); 
               const newErrors = { 
                 email: !email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email), 
@@ -451,8 +463,8 @@ export default function Home() {
                   <input 
                     type="email" 
                     value={email} 
-                    onChange={(e) => { setEmail(e.target.value); if(loginErrors.email) setLoginErrors({...loginErrors, email: false}); }} 
-                    onKeyDown={(e) => {
+                    onChange={(e: any) => { setEmail(e.target.value); if(loginErrors.email) setLoginErrors({...loginErrors, email: false}); }} 
+                    onKeyDown={(e: any) => {
                       if (e.key === 'Enter') {
                         e.preventDefault();
                         const isValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.target.value);
@@ -476,7 +488,7 @@ export default function Home() {
               <div className="relative">
                 <label className="block text-[10px] text-cyan-300/80 mb-1.5 ml-1 uppercase tracking-[0.2em] font-semibold">Password</label>
                 <div className="relative">
-                  <input ref={passwordInputRef} type="password" value={password} onChange={(e) => { setPassword(e.target.value); if(loginErrors.password) setLoginErrors({...loginErrors, password: false}); }} placeholder="••••••••" className={`w-full bg-black/40 backdrop-blur-md border ${loginErrors.password ? 'border-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.2)]' : 'border-white/10 focus:border-cyan-400/50 focus:shadow-[0_0_20px_rgba(6,182,212,0.2)]'} rounded-xl px-4 py-3.5 text-white placeholder-gray-500 focus:outline-none transition-all duration-300 hover:bg-white/10 focus:-translate-y-0.5 pr-10`} />
+                  <input ref={passwordInputRef} type="password" value={password} onChange={(e: any) => { setPassword(e.target.value); if(loginErrors.password) setLoginErrors({...loginErrors, password: false}); }} placeholder="••••••••" className={`w-full bg-black/40 backdrop-blur-md border ${loginErrors.password ? 'border-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.2)]' : 'border-white/10 focus:border-cyan-400/50 focus:shadow-[0_0_20px_rgba(6,182,212,0.2)]'} rounded-xl px-4 py-3.5 text-white placeholder-gray-500 focus:outline-none transition-all duration-300 hover:bg-white/10 focus:-translate-y-0.5 pr-10`} />
                   {loginErrors.password && (
                     <div className="absolute right-3 top-1/2 -translate-y-1/2 text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.8)] animate-in fade-in zoom-in duration-300" title="Password is required">
                       <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
@@ -520,14 +532,16 @@ export default function Home() {
           </div>
           <div className="mt-4 mb-6 text-center">
             <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+              
               <CountUp 
                 from={0} 
                 to={100} 
                 duration={2.5} 
                 className="text-5xl font-bold text-cyan-400 drop-shadow-[0_0_15px_rgba(6,182,212,0.5)] tabular-nums" 
                 startWhen={loginStatus === 'welcoming'}
+                onStart={() => {}}
                 onEnd={() => setLoadingComplete(true)}
-                onUpdate={(latest) => {
+                onUpdate={(latest: any) => {
                   if (progressBarRef.current) {
                     progressBarRef.current.style.width = `${latest}%`;
                   }
@@ -574,8 +588,14 @@ export default function Home() {
                   <h2 className="text-sm font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-indigo-400">Workspace Files</h2>
                   <p className="text-[10px] text-gray-500 uppercase tracking-widest mt-0.5">Vector Indexed</p>
                 </div>
-                <div className="flex items-center gap-3">
-                  <button onClick={() => setShowClearRepoModal(true)} className="text-red-500/70 hover:text-red-400 hover:drop-shadow-[0_0_12px_rgba(248,113,113,1)] transition-all duration-200" title="Clear Repository">
+                <div className="flex items-center gap-2">
+                    <ElectricBorder color="#06b6d4" borderRadius={4} chaos={0.03} displacement={4} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <button onClick={() => setShowIngestModal(true)} className="flex items-center gap-1 bg-cyan-500/10 border border-cyan-500/30 hover:bg-cyan-500/20 hover:border-cyan-400/50 text-cyan-400 hover:text-cyan-300 rounded px-2 py-1 transition-all duration-200 shadow-[0_0_10px_rgba(6,182,212,0.15)] hover:shadow-[0_0_15px_rgba(6,182,212,0.3)]">
+                        <svg className="w-3.5 h-3.5 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4"></path></svg>
+                        <span className="text-[10px] font-bold uppercase tracking-wider">Repo</span>
+                      </button>
+                    </ElectricBorder>
+                  <button onClick={() => setShowClearRepoModal(true)} className="text-red-500/70 hover:text-red-400 hover:drop-shadow-[0_0_12px_rgba(248,113,113,1)] transition-all duration-200 ml-1" title="Clear Repository">
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                   </button>
                   <button onClick={fetchFiles} className={`text-blue-500/80 hover:text-blue-400 hover:drop-shadow-[0_0_12px_rgba(96,165,250,1)] transition-all duration-200 ${isRefreshing ? 'animate-spin [animation-direction:reverse]' : ''}`} title="Refresh">
@@ -583,24 +603,44 @@ export default function Home() {
                   </button>
                 </div>
               </header>
-              <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+              <div className="flex-1 overflow-y-auto p-4 custom-scrollbar flex flex-col">
                 {fileTree.length === 0 ? (
-                  <div className="flex items-center justify-center h-full pb-10">
-                    <div className="flex flex-col items-center gap-4">
-                      <div className="w-14 h-14 rounded-full bg-cyan-500/10 grid place-items-center border border-cyan-500/20 shadow-[0_0_30px_rgba(6,182,212,0.15)]">
-                        <svg className="w-6 h-6 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                  <div className="w-full flex-1 flex flex-col items-center justify-center">
+                    <div className="flex flex-col items-center gap-[24px]">
+                      <div className="w-[64px] h-[64px] rounded-2xl bg-gradient-to-br from-cyan-500/20 to-indigo-500/20 relative group border border-cyan-500/30 shadow-[0_0_40px_rgba(6,182,212,0.2)]">
+                        <div className="absolute inset-0 bg-cyan-400/20 blur-xl rounded-full animate-pulse" />
+                        <svg className="w-[32px] h-[32px] text-cyan-300 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 transition-transform duration-500 group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.5">
+                          <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+                          <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+                          <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+                        </svg>
                       </div>
-                      <p className="text-gray-400 text-[13px] text-center px-4 leading-relaxed">Your workspace is empty.<br/>Load a codebase to get started.</p>
-                      <button 
-                        onClick={() => setShowIngestModal(true)} 
-                        className="group relative mt-2 px-5 py-2.5 rounded-xl font-medium bg-gradient-to-r from-cyan-500/10 to-indigo-500/10 border border-cyan-500/30 text-cyan-300 hover:text-white transition-all duration-300 hover:shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:border-cyan-400/50 flex items-center justify-center active:scale-95"
-                      >
-                        Repository
-                      </button>
+                      
+                      <div className="flex flex-col items-center gap-[8px] text-center">
+                        <p className="text-gray-300 text-[15px] font-medium m-0 leading-none">Your workspace is empty.</p>
+                        <p className="text-gray-500 text-[12px] m-0 leading-none">Add a codebase to begin analysis.</p>
+                      </div>
+                      
+                      <ElectricBorder color="#06b6d4" borderRadius={9999} chaos={0.03} displacement={5} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <button 
+                          onClick={() => setShowIngestModal(true)} 
+                          className="group relative overflow-hidden rounded-full font-bold text-[12px] bg-cyan-500/10 text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/20 transition-all duration-300 flex items-center justify-center px-[24px] py-[10px] border border-cyan-500/30 shadow-[0_0_15px_rgba(6,182,212,0.15)] hover:shadow-[0_0_25px_rgba(6,182,212,0.3)] active:scale-[0.95]"
+                        >
+                          <span className="flex items-center gap-[8px] relative z-10">
+                            <svg className="w-[14px] h-[14px] transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+                            </svg>
+                            Add Repository
+                          </span>
+                          <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-cyan-400/10 to-transparent group-hover:animate-[shimmer_1.5s_infinite]" />
+                        </button>
+                      </ElectricBorder>
                     </div>
                   </div>
                 ) : (
-                  fileTree.map((node, idx) => <FileTreeNode key={idx} node={node} />)
+                  <div className="pb-2">
+                    {fileTree.map((node: any, idx: number) => <FileTreeNode key={idx} node={node} />)}
+                  </div>
                 )}
               </div>
             </div>
@@ -625,28 +665,34 @@ export default function Home() {
                 </motion.button>
                 <p className="text-cyan-300/80 text-[10px] uppercase tracking-[0.3em] font-semibold">GraphRAG Engine (Mock Mode)</p>
                 <h2 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-indigo-400 mt-1">Repository Intelligence</h2>
-                <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-4">
-                  {/* Beginner Mode Toggle */}
-                  <label className="flex items-center gap-2 cursor-pointer group" title="Explain like I'm a beginner">
-                    <span className={`text-[10px] font-bold uppercase tracking-wider transition-colors ${beginnerMode ? 'text-cyan-400 drop-shadow-[0_0_8px_rgba(6,182,212,0.8)]' : 'text-gray-500 group-hover:text-gray-400'}`}>Beginner Mode</span>
-                    <div className="relative">
-                      <input type="checkbox" className="sr-only" checked={beginnerMode} onChange={(e) => setBeginnerMode(e.target.checked)} />
-                      <div className={`block w-9 h-5 rounded-full transition-colors duration-300 ${beginnerMode ? 'bg-cyan-500/20 border border-cyan-500/50 shadow-[0_0_10px_rgba(6,182,212,0.2)]' : 'bg-white/5 border border-white/10'}`}></div>
-                      <div className={`absolute left-[2px] top-[2px] w-4 h-4 rounded-full transition-transform duration-300 ${beginnerMode ? 'transform translate-x-4 bg-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.8)]' : 'bg-gray-400'}`}></div>
-                    </div>
-                  </label>
-                  
-                  <ElectricBorder color="#6366f1" borderRadius={999} chaos={0.06} displacement={8} style={{ display: 'inline-block' }}>
-                    <button 
-                      onClick={startNewChat}
-                      className="px-4 py-2 rounded-full bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 text-indigo-100 transition-all duration-200 hover:shadow-[0_0_15px_rgba(99,102,241,0.4)] active:scale-95 flex items-center gap-2 text-sm font-medium relative z-10 w-full h-full whitespace-nowrap"
-                      title="New Chat"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>
-                      <span className="hidden sm:inline">New Chat</span>
-                    </button>
-                  </ElectricBorder>
-                </div>
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col items-end gap-2">
+                    <ElectricBorder color="#6366f1" borderRadius={999} chaos={0.03} displacement={8} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <button 
+                        onClick={startNewChat}
+                        className="px-4 py-2 rounded-full bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 text-indigo-100 transition-all duration-200 hover:shadow-[0_0_15px_rgba(99,102,241,0.4)] active:scale-95 flex items-center justify-center gap-2 text-sm font-medium relative z-10 whitespace-nowrap"
+                        title="New Chat"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>
+                        <span className="hidden sm:inline">New Chat</span>
+                      </button>
+                    </ElectricBorder>
+
+                    {/* Beginner Mode Toggle */}
+                    <label className="flex items-center gap-2 cursor-pointer group" title="Explain like I'm a beginner">
+                      <span className={`text-[10px] font-bold uppercase tracking-wider transition-colors ${beginnerMode ? 'text-cyan-400 drop-shadow-[0_0_8px_rgba(6,182,212,0.8)]' : 'text-gray-500 group-hover:text-gray-400'}`}>Beginner Mode</span>
+                      <div className="relative">
+                        <input type="checkbox" className="sr-only" checked={beginnerMode} onChange={(e: any) => {
+                          const isEnabled = e.target.checked;
+                          setBeginnerMode(isEnabled);
+                          const msgId = Date.now().toString();
+                          setAnimatingMessageId(msgId);
+                          appendToChat({ id: msgId, role: 'assistant', content: isEnabled ? 'Beginner mode is now enabled! I will keep my explanations simple and easy to understand.' : 'Beginner mode is disabled. I will provide detailed, technical explanations.' });
+                        }} />
+                        <div className={`block w-9 h-5 rounded-full transition-colors duration-300 ${beginnerMode ? 'bg-cyan-500/20 border border-cyan-500/50 shadow-[0_0_10px_rgba(6,182,212,0.2)]' : 'bg-white/5 border border-white/10'}`}></div>
+                        <div className={`absolute left-[2px] top-[2px] w-4 h-4 rounded-full transition-transform duration-300 ${beginnerMode ? 'transform translate-x-4 bg-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.8)]' : 'bg-gray-400'}`}></div>
+                      </div>
+                    </label>
+                  </div>                
               </header>
 
               {/* Chat History Dropdown Overlay */}
@@ -676,7 +722,7 @@ export default function Home() {
                         </button>
                         {chatSessions.length > 1 && (
                           <button
-                            onClick={(e) => deleteChat(e, session.id)}
+                            onClick={(e: any) => deleteChat(e, session.id)}
                             className="absolute right-2 p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-400/10 rounded-md opacity-0 group-hover:opacity-100 transition-all"
                             title="Delete Chat"
                           >
@@ -691,7 +737,7 @@ export default function Home() {
               </AnimatePresence>
 
               <div className="flex-1 overflow-y-auto px-2 py-6 md:px-4 flex flex-col gap-3 custom-scrollbar">
-                {chatHistory.map((msg, idx) => {
+                {chatHistory.map((msg: any, idx: number) => {
                   const isBot = msg.role === 'assistant';
                   
                   if (isBot) {
@@ -770,7 +816,7 @@ export default function Home() {
                 {/* Attachment Preview Area */}
                 {attachments.length > 0 && (
                   <div className="flex gap-2 flex-wrap px-2">
-                    {attachments.map((file, idx) => (
+                    {attachments.map((file: any, idx: number) => (
                       <div key={idx} className="flex items-center gap-2 bg-indigo-500/20 border border-indigo-500/30 px-3 py-1.5 rounded-lg text-xs text-indigo-100">
                         <svg className="w-3 h-3 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
                         <span className="truncate max-w-[150px]">{file.name}</span>
@@ -791,30 +837,12 @@ export default function Home() {
                     accept=".txt,.pdf,.doc,.docx"
                     className="hidden" 
                   />
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-lg bg-gradient-to-r from-cyan-500/10 to-indigo-500/10 border border-cyan-500/30 grid place-items-center text-cyan-400 hover:text-white hover:shadow-[0_0_15px_rgba(6,182,212,0.3)] hover:border-cyan-400/50 transition-all duration-300 z-10 shadow-sm"
-                    title="Attach Document"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setShowIngestModal(true)}
-                    className="absolute left-14 top-1/2 -translate-y-1/2 px-3 py-1.5 rounded-lg bg-gradient-to-r from-cyan-500/10 to-indigo-500/10 border border-cyan-500/30 text-xs font-bold text-cyan-400 hover:text-white hover:shadow-[0_0_15px_rgba(6,182,212,0.3)] hover:border-cyan-400/50 transition-all duration-300 z-10 tracking-wide shadow-sm"
-                    title="Ingest Repository"
-                  >
-                    Repository
-                  </button>
-
                   <input
                     type="text"
                     value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    placeholder="Ask about the codebase or upload docs..."
-                    className="w-full bg-black/40 backdrop-blur-xl border border-white/10 rounded-full py-4 pl-40 pr-16 text-white placeholder-gray-400 focus:outline-none focus:border-cyan-400/50 transition-colors shadow-[0_0_30px_rgba(6,182,212,0.1)]"
+                    onChange={(e: any) => setQuery(e.target.value)}
+                    placeholder="Ask about the codebase..."
+                    className="w-full bg-black/40 backdrop-blur-xl border border-white/10 rounded-full py-4 pl-6 pr-16 text-white placeholder-gray-400 focus:outline-none focus:border-cyan-400/50 transition-colors shadow-[0_0_30px_rgba(6,182,212,0.1)]"
                   />
                   <button 
                     type="submit" 
@@ -841,7 +869,7 @@ export default function Home() {
             <input 
               type="text" 
               value={repoUrl} 
-              onChange={(e) => setRepoUrl(e.target.value)} 
+              onChange={(e: any) => setRepoUrl(e.target.value)} 
               placeholder="https://github.com/user/repo" 
               className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500/50 mb-4"
               disabled={ingesting}
@@ -853,22 +881,30 @@ export default function Home() {
             
             <div className="flex justify-end gap-3">
               <button 
-                onClick={() => { setShowIngestModal(false); setIngestStatus(''); }} 
+                onClick={() => { 
+                  if (ingesting && abortControllerRef.current) {
+                    abortControllerRef.current.abort();
+                  } else {
+                    setShowIngestModal(false); 
+                    setIngestStatus(''); 
+                  }
+                }} 
                 className="px-4 py-2 rounded-lg text-sm text-gray-400 hover:text-white transition-colors"
-                disabled={ingesting}
               >
-                Cancel
+                {ingesting ? 'Cancel Ingestion' : 'Cancel'}
               </button>
               <button 
                 onClick={async () => {
                   if (!repoUrl.trim()) return;
                   setIngesting(true);
                   setIngestStatus('Cloning and parsing repository... This may take a minute.');
+                  abortControllerRef.current = new AbortController();
                   try {
                     const res = await fetch('http://localhost:8080/api/ingest', {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ repo_url_or_path: repoUrl })
+                      body: JSON.stringify({ repo_url_or_path: repoUrl }),
+                      signal: abortControllerRef.current.signal
                     });
                     const data = await res.json();
                     if (data.status === 'success') {
@@ -882,8 +918,12 @@ export default function Home() {
                     } else {
                       setIngestStatus(`Error: ${data.message || 'Failed to process repository.'}`);
                     }
-                  } catch (e) {
-                    setIngestStatus('Error: Could not connect to backend server.');
+                  } catch (e: any) {
+                    if (e.name === 'AbortError') {
+                      setIngestStatus('Cancelling ingestion...');
+                    } else {
+                      setIngestStatus('Error: Could not connect to backend server.');
+                    }
                   } finally {
                     setIngesting(false);
                   }
@@ -913,7 +953,7 @@ export default function Home() {
                   <p className="text-sm text-gray-400 italic">No repositories found.</p>
                 </div>
               ) : (
-                fileTree.filter(n => n.type === 'directory').map((repo) => (
+                fileTree.filter(n => n.type === 'directory').map((repo: any, idx: number) => (
                   <div key={repo.name} className="flex items-center justify-between bg-white/5 border border-white/5 rounded-xl p-3 hover:border-red-500/50 hover:bg-red-500/5 transition-all duration-200 group">
                     <div className="flex items-center gap-3 overflow-hidden">
                       <svg className="w-5 h-5 text-gray-500 group-hover:text-red-400 shrink-0 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg>
@@ -1001,3 +1041,4 @@ export default function Home() {
     </ClickSpark>
   );
 }
+

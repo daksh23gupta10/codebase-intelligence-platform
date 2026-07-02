@@ -62,6 +62,24 @@ const teamMembers = [
     contactText: "GitHub",
     innerGradient: "linear-gradient(145deg, #1e0a2e8c 0%, #a855f744 100%)",
     behindGlowColor: "rgba(168, 85, 247, 0.5)",
+  },
+  {
+    name: "Srishti Arora",
+    title: (
+      <>
+        AI / ML Engineer<br/>
+        <span className="text-sm">+</span><br/>
+        Data Analyst
+      </>
+    ),
+    handle: "srishtiarora",
+    status: "Core Contributor",
+    avatarUrl: "/srishti.jpg",
+    isFullImage: true,
+    imageAlignment: "object-[center_20%]",
+    contactText: "GitHub",
+    innerGradient: "linear-gradient(145deg, #1a0a2e8c 0%, #06b6d444 100%)",
+    behindGlowColor: "rgba(6, 182, 212, 0.5)",
   }
 ];
 
@@ -73,6 +91,9 @@ export default function AboutPage() {
       {/* Background Ferrofluid Animation */}
       <div className="absolute inset-0 z-0 opacity-70 mix-blend-screen">
         <Ferrofluid
+          className="absolute inset-0"
+          dpr={1}
+          mixBlendMode="screen"
           colors={["#00F0FF", "#FF007F", "#8A2BE2"]}
           speed={0.3}
           scale={1.2}
@@ -127,7 +148,7 @@ export default function AboutPage() {
         </div>
 
         {/* Profile Cards */}
-        <div className="flex flex-wrap justify-center gap-12 px-8 py-16 max-w-7xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 px-8 py-16 max-w-5xl mx-auto place-items-center">
           {teamMembers.map((member, idx) => (
             <div key={idx} className="flex flex-col items-center gap-6">
               <ProfileCard
