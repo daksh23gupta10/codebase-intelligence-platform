@@ -379,7 +379,13 @@ Code Context:{context}
 """
 
     if not gemini_client:
-        return {"answer": "Error: Gemini client not initialized. Check API key.", "sources": []}
+        mock_answer = "**⚠️ Running in Local Mock Mode (No API Key)**\n\n"
+        mock_answer += "I successfully searched the local Vector Database for your query, but because no `GEMINI_API_KEY` was found in the `.env` file, I cannot generate an AI explanation.\n\n"
+        mock_answer += "However, here are the most relevant files I found for your query:\n"
+        for src in sources:
+            mock_answer += f"- `{src}`\n"
+        mock_answer += "\n*(To unlock full AI explanations and Mermaid diagrams, copy `.env.example` to `.env` and add your Gemini API Key!)*"
+        return {"answer": mock_answer, "sources": sources}
 
     try:
         response = gemini_client.models.generate_content(
