@@ -531,10 +531,9 @@ export default function Home() {
                       <p className="text-gray-400 text-[13px] text-center px-4 leading-relaxed">Your workspace is empty.<br/>Load a codebase to get started.</p>
                       <button 
                         onClick={() => setShowIngestModal(true)} 
-                        className="group relative mt-2 px-5 py-2.5 rounded-xl font-medium bg-gradient-to-r from-cyan-500/10 to-indigo-500/10 border border-cyan-500/30 text-cyan-300 hover:text-white transition-all duration-300 hover:shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:border-cyan-400/50 flex items-center gap-2 active:scale-95"
+                        className="group relative mt-2 px-5 py-2.5 rounded-xl font-medium bg-gradient-to-r from-cyan-500/10 to-indigo-500/10 border border-cyan-500/30 text-cyan-300 hover:text-white transition-all duration-300 hover:shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:border-cyan-400/50 flex items-center justify-center active:scale-95"
                       >
-                        <svg className="w-4 h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>
-                        Ingest Repository
+                        Repository
                       </button>
                     </div>
                   </div>
@@ -723,7 +722,7 @@ export default function Home() {
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full grid place-items-center text-gray-400 hover:text-cyan-400 hover:bg-white/5 transition-all duration-200 z-10"
+                    className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-lg bg-gradient-to-r from-cyan-500/10 to-indigo-500/10 border border-cyan-500/30 grid place-items-center text-cyan-400 hover:text-white hover:shadow-[0_0_15px_rgba(6,182,212,0.3)] hover:border-cyan-400/50 transition-all duration-300 z-10 shadow-sm"
                     title="Attach Document"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
@@ -732,10 +731,10 @@ export default function Home() {
                   <button
                     type="button"
                     onClick={() => setShowIngestModal(true)}
-                    className="absolute left-14 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full grid place-items-center text-gray-400 hover:text-indigo-400 hover:bg-white/5 transition-all duration-200 z-10"
+                    className="absolute left-14 top-1/2 -translate-y-1/2 px-3 py-1.5 rounded-lg bg-gradient-to-r from-cyan-500/10 to-indigo-500/10 border border-cyan-500/30 text-xs font-bold text-cyan-400 hover:text-white hover:shadow-[0_0_15px_rgba(6,182,212,0.3)] hover:border-cyan-400/50 transition-all duration-300 z-10 tracking-wide shadow-sm"
                     title="Ingest Repository"
                   >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                    Repository
                   </button>
 
                   <input
@@ -743,7 +742,7 @@ export default function Home() {
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     placeholder="Ask about the codebase or upload docs..."
-                    className="w-full bg-black/40 backdrop-blur-xl border border-white/10 rounded-full py-4 pl-28 pr-16 text-white placeholder-gray-400 focus:outline-none focus:border-cyan-400/50 transition-colors shadow-[0_0_30px_rgba(6,182,212,0.1)]"
+                    className="w-full bg-black/40 backdrop-blur-xl border border-white/10 rounded-full py-4 pl-40 pr-16 text-white placeholder-gray-400 focus:outline-none focus:border-cyan-400/50 transition-colors shadow-[0_0_30px_rgba(6,182,212,0.1)]"
                   />
                   <button 
                     type="submit" 
