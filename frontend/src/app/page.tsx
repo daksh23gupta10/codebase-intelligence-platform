@@ -120,6 +120,7 @@ export default function Home() {
   const [repoUrl, setRepoUrl] = useState('');
   const [ingesting, setIngesting] = useState(false);
   const [ingestStatus, setIngestStatus] = useState('');
+  const [beginnerMode, setBeginnerMode] = useState(false);
   const [copiedIndex, setCopiedIndex] = useState(null);
   const fileInputRef = React.useRef(null);
   const passwordInputRef = React.useRef(null);
@@ -303,7 +304,7 @@ export default function Home() {
       const res = await fetch('http://localhost:8080/api/query', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: userMessage })
+        body: JSON.stringify({ query: userMessage, beginner_mode: beginnerMode })
       });
       const data = await res.json();
       const newMsgId = Date.now().toString();
@@ -563,7 +564,17 @@ export default function Home() {
                 </motion.button>
                 <p className="text-cyan-300/80 text-[10px] uppercase tracking-[0.3em] font-semibold">GraphRAG Engine (Mock Mode)</p>
                 <h2 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-indigo-400 mt-1">Repository Intelligence</h2>
-                <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-4">
+                  {/* Beginner Mode Toggle */}
+                  <label className="flex items-center gap-2 cursor-pointer group" title="Explain like I'm a beginner">
+                    <span className={`text-[10px] font-bold uppercase tracking-wider transition-colors ${beginnerMode ? 'text-cyan-400 drop-shadow-[0_0_8px_rgba(6,182,212,0.8)]' : 'text-gray-500 group-hover:text-gray-400'}`}>Beginner Mode</span>
+                    <div className="relative">
+                      <input type="checkbox" className="sr-only" checked={beginnerMode} onChange={(e) => setBeginnerMode(e.target.checked)} />
+                      <div className={`block w-9 h-5 rounded-full transition-colors duration-300 ${beginnerMode ? 'bg-cyan-500/20 border border-cyan-500/50 shadow-[0_0_10px_rgba(6,182,212,0.2)]' : 'bg-white/5 border border-white/10'}`}></div>
+                      <div className={`absolute left-[2px] top-[2px] w-4 h-4 rounded-full transition-transform duration-300 ${beginnerMode ? 'transform translate-x-4 bg-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.8)]' : 'bg-gray-400'}`}></div>
+                    </div>
+                  </label>
+                  
                   <ElectricBorder color="#6366f1" borderRadius={999} chaos={0.06} displacement={8} style={{ display: 'inline-block' }}>
                     <button 
                       onClick={startNewChat}

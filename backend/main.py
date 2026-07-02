@@ -178,6 +178,7 @@ class IngestRequest(BaseModel):
 
 class QueryRequest(BaseModel):
     query: str
+    beginner_mode: bool = False
 
 @app.on_event("startup")
 async def startup_event():
@@ -362,7 +363,15 @@ async def handle_query(request: QueryRequest):
 The user has asked a question. Use the following code snippets retrieved from the codebase to answer the question.
 If the answer is not in the code snippets, say so. Do not hallucinate code. Try to be concise and accurate.
 CRITICAL: You MUST explicitly state the exact file path and folder location (e.g., 'frontend/src/app/page.tsx') for any code you reference or explain.
-
+"""
+    
+    if request.beginner_mode:
+        prompt += """
+CRITICAL: The user has enabled "Beginner Mode". You MUST explain your answer as if the user is a junior developer or a beginner to coding. 
+Avoid overly complex technical jargon. Use simple, real-world analogies to explain architectural concepts. Break things down step-by-step.
+"""
+        
+    prompt += f"""
 User Question: {request.query}
 
 Code Context:{context}
