@@ -39,19 +39,35 @@ const MarkdownMessage = ({ content }: { content: string }) => {
     <div className="prose prose-invert max-w-none text-sm leading-relaxed text-gray-200">
       <ReactMarkdown
         components={{
-          code({ node, inline, className, children, ...props }: any) {
+          code({ node, className, children, ...props }: any) {
           const match = /language-(\w+)/.exec(className || '');
-          if (!inline && match && match[1] === 'mermaid') {
+          if (match && match[1] === 'mermaid') {
             return <MermaidViewer chart={String(children).replace(/\n$/, '')} />;
           }
-          return !inline ? (
-             <div className="bg-black/60 rounded-md border border-white/10 p-4 my-2 overflow-x-auto custom-scrollbar">
-               <code className={className} {...props}>{children}</code>
-             </div>
-          ) : (
-            <code className="bg-white/10 px-1 py-0.5 rounded text-cyan-300 font-mono text-[13px]" {...props}>
+          
+          const isInline = !match && !String(children).includes('\n');
+          
+          if (isInline) {
+            return (
+              <code className="bg-white/10 px-1 py-0.5 rounded text-cyan-300 font-mono text-[13px]" {...props}>
+                {children}
+              </code>
+            );
+          }
+
+          return (
+            <code className={className} {...props}>
               {children}
             </code>
+          );
+        },
+        pre({ children, ...props }: any) {
+          return (
+            <div className="bg-black/60 rounded-md border border-white/10 p-4 my-2 overflow-x-auto custom-scrollbar">
+              <pre className="m-0 p-0 bg-transparent" {...props}>
+                {children}
+              </pre>
+            </div>
           );
         },
         p({ children }) {
