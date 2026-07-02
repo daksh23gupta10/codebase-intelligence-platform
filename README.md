@@ -56,6 +56,10 @@ python -m venv venv
 source venv/bin/activate  # On Windows use: venv\Scripts\activate
 pip install -r requirements.txt
 
+# Create your .env file
+copy .env.example .env
+# Open .env and add your GEMINI_API_KEY=your_key_here
+
 # Start the backend server on port 8080
 python main.py
 ```
