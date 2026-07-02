@@ -358,11 +358,12 @@ async def handle_query(request: QueryRequest):
             
     # Remove duplicate sources
     sources = list(set(sources))
-    
     prompt = f"""You are a helpful coding assistant analyzing a codebase.
 The user has asked a question. Use the following code snippets retrieved from the codebase to answer the question.
 If the answer is not in the code snippets, say so. Do not hallucinate code. Try to be concise and accurate.
 CRITICAL: You MUST explicitly state the exact file path and folder location (e.g., 'frontend/src/app/page.tsx') for any code you reference or explain.
+CRITICAL: If the user asks about system architecture, workflows, dependency graphs, or data flows, you MUST output a Mermaid diagram using ```mermaid code blocks. Make the diagram detailed and well-structured.
+CRITICAL MERMAID RULE: Always wrap node text in double quotes (e.g., `A["Call function()"]`) to prevent syntax errors from special characters like parentheses.
 """
     
     if request.beginner_mode:

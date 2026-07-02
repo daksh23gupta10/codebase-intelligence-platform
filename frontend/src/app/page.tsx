@@ -11,6 +11,67 @@ import BorderGlow from '@/components/BorderGlow';
 import CountUp from '@/components/CountUp';
 import TextPressure from '@/components/TextPressure';
 import NavBar from '@/components/NavBar';
+import ReactMarkdown from 'react-markdown';
+import mermaid from 'mermaid';
+
+mermaid.initialize({ startOnLoad: false, theme: 'dark' });
+
+const MermaidViewer = ({ chart }: { chart: string }) => {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (ref.current) {
+      mermaid.render(`mermaid-${Math.random().toString(36).substr(2, 9)}`, chart).then(({ svg }) => {
+        if (ref.current) ref.current.innerHTML = svg;
+      }).catch(err => {
+        console.error("Mermaid parsing error:", err);
+        if (ref.current) ref.current.innerHTML = `<pre class="text-red-400 text-xs">Error parsing diagram: ${err.message}</pre>`;
+      });
+    }
+  }, [chart]);
+
+  return <div ref={ref} className="mermaid flex justify-center w-full my-4 p-4 bg-black/40 border border-white/10 rounded-xl overflow-x-auto overflow-y-hidden custom-scrollbar" />;
+};
+
+const MarkdownMessage = ({ content }: { content: string }) => {
+  return (
+    <div className="prose prose-invert max-w-none text-sm leading-relaxed text-gray-200">
+      <ReactMarkdown
+        components={{
+          code({ node, inline, className, children, ...props }: any) {
+          const match = /language-(\w+)/.exec(className || '');
+          if (!inline && match && match[1] === 'mermaid') {
+            return <MermaidViewer chart={String(children).replace(/\n$/, '')} />;
+          }
+          return !inline ? (
+             <div className="bg-black/60 rounded-md border border-white/10 p-4 my-2 overflow-x-auto custom-scrollbar">
+               <code className={className} {...props}>{children}</code>
+             </div>
+          ) : (
+            <code className="bg-white/10 px-1 py-0.5 rounded text-cyan-300 font-mono text-[13px]" {...props}>
+              {children}
+            </code>
+          );
+        },
+        p({ children }) {
+           return <p className="mb-2 last:mb-0 whitespace-pre-wrap">{children}</p>;
+        },
+        ul({ children }) {
+           return <ul className="list-disc pl-5 mb-3 space-y-1">{children}</ul>;
+        },
+        ol({ children }) {
+           return <ol className="list-decimal pl-5 mb-3 space-y-1">{children}</ol>;
+        },
+        strong({ children }) {
+           return <strong className="font-bold text-white">{children}</strong>;
+        }
+      }}
+    >
+      {content}
+    </ReactMarkdown>
+    </div>
+  );
+};
 
 const FileTreeNode = ({ node, depth = 0 }) => {
   const [isOpen, setIsOpen] = React.useState(false);
@@ -662,7 +723,7 @@ export default function Home() {
                             {msg.id && msg.id === animatingMessageId ? (
                               <TypewriterText text={msg.content} speed={8} onComplete={() => setAnimatingMessageId(null)} />
                             ) : (
-                              <p className="whitespace-pre-wrap text-sm">{msg.content}</p>
+                              <MarkdownMessage content={msg.content} />
                             )}
                           </div>
                         </div>
@@ -675,7 +736,7 @@ export default function Home() {
                       <div className="flex items-start gap-2 max-w-[90%] ml-auto">
                         {/* User Bubble */}
                         <div className="rounded-2xl p-4 backdrop-blur-md transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-lg relative group bg-white/5 border border-white/10 text-gray-200 hover:shadow-white/10 hover:bg-white/10 rounded-tr-sm text-left">
-                          <p className="whitespace-pre-wrap text-sm">{msg.content}</p>
+                          <MarkdownMessage content={msg.content} />
                         </div>
 
                         {/* User Avatar */}
