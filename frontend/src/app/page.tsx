@@ -91,7 +91,8 @@ const MarkdownMessage = ({ content }: { content: string }) => {
 };
 
 const FileTreeNode = ({ node, depth = 0 }: { node: any, depth?: number }) => {
-  const [isOpen, setIsOpen] = React.useState(false);
+  // Expand root repository folders by default so users can immediately see their files
+  const [isOpen, setIsOpen] = React.useState(depth === 0);
   const isDir = node.type === 'directory';
   const isRootRepo = isDir && depth === 0;
   const dirColor = isRootRepo ? 'text-pink-400 font-bold' : 'text-indigo-300 font-semibold';
