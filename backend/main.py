@@ -15,7 +15,12 @@ from services.vector_db import VectorDB
 
 load_dotenv()
 try:
-    gemini_client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
+    api_key = os.environ.get("GEMINI_API_KEY", "").strip()
+    if not api_key or api_key == "your_api_key_here":
+        print("Warning: No valid GEMINI_API_KEY found. Running in Mock Mode.")
+        gemini_client = None
+    else:
+        gemini_client = genai.Client(api_key=api_key)
 except Exception as e:
     print(f"Warning: Failed to initialize Gemini client: {e}")
     gemini_client = None
