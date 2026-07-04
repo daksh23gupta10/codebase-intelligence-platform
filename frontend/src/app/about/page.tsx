@@ -60,6 +60,7 @@ const teamMembers = [
     avatarUrl: "/member3_photo.jpg",
     isFullImage: true,
     contactText: "GitHub",
+    contactUrl: "https://github.com/navyavermani",
     innerGradient: "linear-gradient(145deg, #1e0a2e8c 0%, #a855f744 100%)",
     behindGlowColor: "rgba(168, 85, 247, 0.5)",
   },
@@ -78,6 +79,7 @@ const teamMembers = [
     isFullImage: true,
     imageAlignment: "object-[center_20%]",
     contactText: "GitHub",
+    contactUrl: "https://github.com/sriraa22",
     innerGradient: "linear-gradient(145deg, #1a0a2e8c 0%, #06b6d444 100%)",
     behindGlowColor: "rgba(6, 182, 212, 0.5)",
   }
