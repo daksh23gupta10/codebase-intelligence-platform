@@ -1,4 +1,5 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Header
+from typing import Optional
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import time
@@ -7,138 +8,8 @@ import os
 import uvicorn
 from dotenv import load_dotenv
 from google import genai
-
-from services.ingestion import RepositoryIngester
-from services.ast_parser import ASTParser
-from services.graph_db import KnowledgeGraph
-from services.vector_db import VectorDB
-
-load_dotenv()
-try:
-    api_key = os.environ.get("GEMINI_API_KEY", "").strip()
-    if not api_key or api_key == "your_api_key_here":
-        print("Warning: No valid GEMINI_API_KEY found. Running in Mock Mode.")
-        gemini_client = None
-    else:
-        gemini_client = genai.Client(api_key=api_key)
-except Exception as e:
-    print(f"Warning: Failed to initialize Gemini client: {e}")
-    gemini_client = None
-
-app = FastAPI()
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# Initialize singletons for the services (lazy init for ML models to avoid slow startup)
-ingester = None
-ast_parser = None
-graph_db = None
-vector_db = None
-
-def init_services():
-    global ingester, ast_parser, graph_db, vector_db
-    if not ingester:
-        print("Initializing services...")
-        ingester = RepositoryIngester()
-        ast_parser = ASTParser()
-        graph_db = KnowledgeGraph()
-        vector_db = VectorDB()
-        print("Services initialized.")
-
-class IngestRequest(BaseModel):
-    repo_url_or_path: str
-
-class QueryRequest(BaseModel):
-    query: str
-
-@app.on_event("startup")
-async def startup_event():
-    # Defer heavy loading to first request or run in background
-    pass
-
-@app.get("/")
-def read_root():
-    return {"status": "ok"}
-
-@app.post("/api/ingest")
-async def ingest_codebase(request: IngestRequest):
-    init_services()
-    print(f"Starting ingestion for: {request.repo_url_or_path}")
-    
-    # 1. Clone/Copy Repository
-    repo_path = ingester.ingest_repository(request.repo_url_or_path)
-    
-    files_processed = 0
-    # 2. Traverse files
-    for file_path in ingester.traverse_files(repo_path):
-        try:
-            # 3. Parse AST
-            symbols = ast_parser.parse_file(file_path)
-            
-            # Read file content for vector DB
-            with open(file_path, "r", encoding="utf-8") as f:
-                code_content = f.read()
-            
-            rel_path = str(file_path.relative_to(repo_path))
-            
-            # 4. Add to Vector DB
-            vector_db.add_document(
-                doc_id=rel_path,
-                text=code_content,
-                metadata={"file": rel_path}
-            )
-            
-            # 5. Add to Knowledge Graph
-            graph_db.add_file(rel_path)
-            if symbols:
-                for func in symbols["functions"]:
-                    graph_db.add_symbol(rel_path, func, "function")
-                for cls in symbols["classes"]:
-                    graph_db.add_symbol(rel_path, cls, "class")
-                for imp in symbols["imports"]:
-                    # Naive import linking
-                    graph_db.add_import(rel_path, imp)
-            
-            files_processed += 1
-        except Exception as e:
-            print(f"Error processing {file_path}: {e}")
-            
-    summary = graph_db.get_summary()
-    return {
-        "status": "success", 
-        "files_processed": files_processed,
-        "graph_summary": summary
-    }
-
-@app.post("/api/query")
-async def handle_query(request: QueryRequest):
-    init_services()
-    
-    # Retrieve top 3 relevant results from the Vector DB
-    results = vector_db.search(request.query, n_results=3)
-    
-    context = ""
-    sources = []
-    
-    if results and results.get('documents') and len(results['documents']) > 0:
-        docs = results['documents'][0]
-        metadatas = results['metadatas'][0]
-        
-from fastapi import FastAPI, Request
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-import time
-import asyncio
-import os
-import uvicorn
-from dotenv import load_dotenv
-from google import genai
+import shutil
+import stat
 
 from services.ingestion import RepositoryIngester
 from services.ast_parser import ASTParser
@@ -220,7 +91,6 @@ async def ingest_codebase(request: IngestRequest):
                 code_content = f.read()
             
             rel_path = str(file_path.relative_to(repo_path))
-            # Prefix with repo_name to prevent collisions between multiple repos
             full_path = f"{repo_name}/{rel_path}"
             
             # 4. Add to Vector DB
@@ -307,9 +177,6 @@ def get_file_content(path: str = Query(...)):
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
-import shutil
-import stat
-
 def remove_readonly(func, path, exc_info):
     try:
         os.chmod(path, stat.S_IWRITE)
@@ -338,12 +205,22 @@ def delete_repo(repo_name: str):
         return {"status": "error", "message": str(e)}
 
 @app.post("/api/query")
-async def handle_query(request: QueryRequest):
+async def handle_query(request: QueryRequest, x_gemini_api_key: Optional[str] = Header(None)):
     init_services()
     
+    client = None
+    if x_gemini_api_key:
+        try:
+            client = genai.Client(api_key=x_gemini_api_key)
+        except Exception as e:
+            print(f"Failed to initialize custom Gemini client: {e}")
+            
+    if not client:
+        client = gemini_client
+        
     # Retrieve top 3 relevant results from the Vector DB
     results = vector_db.search(request.query, n_results=3)
-    
+
     context = ""
     sources = []
     
@@ -368,7 +245,10 @@ The user has asked a question. Use the following code snippets retrieved from th
 If the answer is not in the code snippets, say so. Do not hallucinate code. Try to be concise and accurate.
 CRITICAL: You MUST explicitly state the exact file path and folder location (e.g., 'frontend/src/app/page.tsx') for any code you reference or explain.
 CRITICAL: If the user asks about system architecture, workflows, dependency graphs, or data flows, you MUST output a Mermaid diagram using ```mermaid code blocks. Make the diagram detailed and well-structured.
-CRITICAL MERMAID RULE: Always wrap node text in double quotes (e.g., `A["Call function()"]`) to prevent syntax errors from special characters like parentheses.
+CRITICAL MERMAID RULES:
+1. Always wrap node text in double quotes (e.g., `A["Call function()"]`) to prevent syntax errors from parentheses.
+2. For subgraphs, ALWAYS use the syntax `subgraph ID ["Title with spaces"]` instead of just `subgraph Title`. Do not put raw parentheses or special characters in the subgraph title without double quotes.
+3. Ensure all connections and syntax are strictly valid Mermaid.
 """
     
     if request.beginner_mode:
@@ -383,26 +263,23 @@ User Question: {request.query}
 Code Context:{context}
 """
 
-    if not gemini_client:
-        mock_answer = "**⚠️ Running in Local Mock Mode (No API Key)**\n\n"
-        mock_answer += "I successfully searched the local Vector Database for your query, but because no `GEMINI_API_KEY` was found in the `.env` file, I cannot generate an AI explanation.\n\n"
-        mock_answer += "However, here are the most relevant files I found for your query:\n"
-        for src in sources:
-            mock_answer += f"- `{src}`\n"
-        mock_answer += "\n*(To unlock full AI explanations and Mermaid diagrams, copy `.env.example` to `.env` and add your Gemini API Key!)*"
-        return {"answer": mock_answer, "sources": sources}
+    if not client:
+        return {"answer": "Please add your API key in the backend or via the UI settings to continue.", "sources": sources}
 
     try:
-        response = gemini_client.models.generate_content(
+        response = client.models.generate_content(
             model='gemini-2.5-flash',
             contents=prompt
         )
         answer = response.text
     except Exception as e:
-        answer = f"Error communicating with Gemini: {str(e)}"
+        error_msg = str(e)
+        if "API key not valid" in error_msg or "API_KEY_INVALID" in error_msg:
+            answer = "Please add your API key in the backend or via the UI settings to continue."
+        else:
+            answer = f"Error communicating with Gemini: {error_msg}"
     
     return {"answer": answer, "sources": sources}
-
 
 if __name__ == '__main__':
     uvicorn.run(app, host='0.0.0.0', port=8080)

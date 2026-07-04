@@ -202,6 +202,8 @@ export default function Home() {
   const [ingestStatus, setIngestStatus] = useState('');
   const [beginnerMode, setBeginnerMode] = useState(false);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+  const [apiKey, setApiKey] = useState('');
+  const [showApiKeyModal, setShowApiKeyModal] = useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const passwordInputRef = React.useRef<HTMLInputElement>(null);
   const abortControllerRef = React.useRef<AbortController | null>(null);
@@ -291,6 +293,10 @@ export default function Home() {
     const savedStatus = localStorage.getItem('loginStatus');
     if (savedStatus === 'authenticated') {
       setLoginStatus('authenticated');
+    }
+    const savedKey = localStorage.getItem('gemini_api_key');
+    if (savedKey) {
+      setApiKey(savedKey);
     }
   }, []);
 
@@ -390,7 +396,10 @@ export default function Home() {
       // Calling the mock backend API
       const res = await fetch('http://localhost:8080/api/query', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-gemini-api-key': apiKey 
+        },
         body: JSON.stringify({ query: userMessage, beginner_mode: beginnerMode })
       });
       const data = await res.json();
@@ -694,21 +703,35 @@ export default function Home() {
                       </button>
                     </ElectricBorder>
 
-                    {/* Beginner Mode Toggle */}
-                    <label className="flex items-center gap-2 cursor-pointer group" title="Explain like I'm a beginner">
-                      <span className={`text-[10px] font-bold uppercase tracking-wider transition-colors ${beginnerMode ? 'text-cyan-400 drop-shadow-[0_0_8px_rgba(6,182,212,0.8)]' : 'text-gray-500 group-hover:text-gray-400'}`}>Beginner Mode</span>
-                      <div className="relative">
-                        <input type="checkbox" className="sr-only" checked={beginnerMode} onChange={(e: any) => {
-                          const isEnabled = e.target.checked;
-                          setBeginnerMode(isEnabled);
-                          const msgId = Date.now().toString();
-                          setAnimatingMessageId(msgId);
-                          appendToChat({ id: msgId, role: 'assistant', content: isEnabled ? 'Beginner mode is now enabled! I will keep my explanations simple and easy to understand.' : 'Beginner mode is disabled. I will provide detailed, technical explanations.' });
-                        }} />
-                        <div className={`block w-9 h-5 rounded-full transition-colors duration-300 ${beginnerMode ? 'bg-cyan-500/20 border border-cyan-500/50 shadow-[0_0_10px_rgba(6,182,212,0.2)]' : 'bg-white/5 border border-white/10'}`}></div>
-                        <div className={`absolute left-[2px] top-[2px] w-4 h-4 rounded-full transition-transform duration-300 ${beginnerMode ? 'transform translate-x-4 bg-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.8)]' : 'bg-gray-400'}`}></div>
-                      </div>
-                    </label>
+                    <div className="flex items-center gap-4 mt-2">
+                      {/* API Key Settings Button */}
+                      <ElectricBorder color="#06b6d4" borderRadius={8} chaos={0.03} displacement={4} style={{ display: 'inline-flex' }}>
+                        <button 
+                          onClick={() => setShowApiKeyModal(true)}
+                          className="flex items-center gap-1.5 cursor-pointer group px-3 py-1.5 bg-black/40 hover:bg-white/10 border border-transparent rounded-lg transition-colors relative z-10"
+                          title="Set API Key"
+                        >
+                          <svg className={`w-3.5 h-3.5 transition-colors ${apiKey ? 'text-emerald-400' : 'text-gray-400 group-hover:text-cyan-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path></svg>
+                          <span className={`text-[10px] font-bold uppercase tracking-wider transition-colors ${apiKey ? 'text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.8)]' : 'text-gray-500 group-hover:text-cyan-400'}`}>API Key</span>
+                        </button>
+                      </ElectricBorder>
+
+                      {/* Beginner Mode Toggle */}
+                      <label className="flex items-center gap-2 cursor-pointer group" title="Explain like I'm a beginner">
+                        <span className={`text-[10px] font-bold uppercase tracking-wider transition-colors ${beginnerMode ? 'text-cyan-400 drop-shadow-[0_0_8px_rgba(6,182,212,0.8)]' : 'text-gray-500 group-hover:text-gray-400'}`}>Beginner Mode</span>
+                        <div className="relative">
+                          <input type="checkbox" className="sr-only" checked={beginnerMode} onChange={(e: any) => {
+                            const isEnabled = e.target.checked;
+                            setBeginnerMode(isEnabled);
+                            const msgId = Date.now().toString();
+                            setAnimatingMessageId(msgId);
+                            appendToChat({ id: msgId, role: 'assistant', content: isEnabled ? 'Beginner mode is now enabled! I will keep my explanations simple and easy to understand.' : 'Beginner mode is disabled. I will provide detailed, technical explanations.' });
+                          }} />
+                          <div className={`block w-9 h-5 rounded-full transition-colors duration-300 ${beginnerMode ? 'bg-cyan-500/20 border border-cyan-500/50 shadow-[0_0_10px_rgba(6,182,212,0.2)]' : 'bg-white/5 border border-white/10'}`}></div>
+                          <div className={`absolute left-1 top-1 bg-white w-3 h-3 rounded-full transition-transform duration-300 ${beginnerMode ? 'translate-x-4 shadow-[0_0_8px_white]' : 'opacity-50'}`}></div>
+                        </div>
+                      </label>
+                    </div>
                   </div>                
               </header>
 
@@ -784,7 +807,7 @@ export default function Home() {
                               )}
                             </button>
                             {msg.id && msg.id === animatingMessageId ? (
-                              <TypewriterText text={msg.content} speed={8} onComplete={() => setAnimatingMessageId(null)} />
+                              <TypewriterText text={msg.content} onComplete={() => setAnimatingMessageId(null)} />
                             ) : (
                               <MarkdownMessage content={msg.content} />
                             )}
@@ -955,8 +978,48 @@ export default function Home() {
         </div>
       )}
 
-      {/* Clear Repo Modal */}
-      {showClearRepoModal && (
+        {/* API Key Modal */}
+        {showApiKeyModal && (
+          <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
+            <div className="bg-[#0a0f1c] border border-white/10 p-8 rounded-3xl max-w-md w-full mx-auto my-auto shadow-[0_0_50px_rgba(6,182,212,0.15)] relative overflow-hidden">
+              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 to-cyan-500"></div>
+              <h2 className="text-2xl font-bold text-white mb-2">Gemini API Key</h2>
+              <p className="text-gray-400 text-sm mb-6 leading-relaxed">Enter your Google Gemini API Key to enable the AI assistant. This key is stored securely in your browser's local storage.</p>
+              
+              <div className="flex flex-col gap-4 mb-6">
+                <input 
+                  type="password"
+                  value={apiKey}
+                  onChange={(e) => setApiKey(e.target.value)}
+                  placeholder="AIzaSy..."
+                  className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-cyan-400/50 focus:shadow-[0_0_20px_rgba(6,182,212,0.2)] transition-all"
+                />
+              </div>
+
+              <div className="flex justify-end gap-3">
+                <button 
+                  onClick={() => setShowApiKeyModal(false)} 
+                  className="px-6 py-2.5 rounded-xl text-sm font-medium bg-white/5 hover:bg-white/10 border border-white/10 text-white transition-all duration-200 pointer-events-auto active:scale-95"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={() => {
+                    localStorage.setItem('gemini_api_key', apiKey);
+                    setShowApiKeyModal(false);
+                    // Optionally append a message confirming
+                  }}
+                  className="px-6 py-2.5 bg-gradient-to-r from-indigo-500 to-cyan-400 rounded-xl text-sm text-white font-semibold hover:shadow-[0_0_15px_rgba(99,102,241,0.5)] transition-all hover:scale-105 active:scale-95"
+                >
+                  Save Key
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Clear Repo Modal */}
+        {showClearRepoModal && (
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
           <div className="bg-[#0a0f1c] border border-white/10 p-8 rounded-3xl max-w-md w-full mx-auto my-auto shadow-[0_0_50px_rgba(239,68,68,0.15)] relative overflow-hidden">
             <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-red-500 to-orange-500"></div>
