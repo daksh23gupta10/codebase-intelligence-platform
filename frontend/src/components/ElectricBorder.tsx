@@ -296,7 +296,7 @@ const ElectricBorder = ({
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-[20]">
         <canvas ref={canvasRef} className="block" />
       </div>
-      <div className="absolute inset-0 rounded-[inherit] pointer-events-none z-[10]">
+      <div className="absolute inset-0 rounded-[inherit] pointer-events-none z-0">
         <div
           className="absolute inset-0 rounded-[inherit] pointer-events-none"
           style={{ border: `2px solid ${hexToRgba(color, 0.6)}`, filter: 'blur(1px)' }}

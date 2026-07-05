@@ -615,12 +615,10 @@ export default function Home() {
                   <p className="text-[10px] text-gray-500 uppercase tracking-widest mt-0.5">Vector Indexed</p>
                 </div>
                 <div className="flex items-center gap-2">
-                    <ElectricBorder color="#06b6d4" borderRadius={4} chaos={0.03} displacement={4} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <button onClick={() => setShowIngestModal(true)} className="flex items-center gap-1 bg-cyan-500/10 border border-cyan-500/30 hover:bg-cyan-500/20 hover:border-cyan-400/50 text-cyan-400 hover:text-cyan-300 rounded px-2 py-1 transition-all duration-200 shadow-[0_0_10px_rgba(6,182,212,0.15)] hover:shadow-[0_0_15px_rgba(6,182,212,0.3)]">
-                        <svg className="w-3.5 h-3.5 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4"></path></svg>
-                        <span className="text-[10px] font-bold uppercase tracking-wider">Repo</span>
-                      </button>
-                    </ElectricBorder>
+                  <button onClick={() => setShowIngestModal(true)} className="flex items-center gap-1 bg-cyan-500/10 border border-cyan-500/30 hover:bg-cyan-500/20 hover:border-cyan-400/50 text-cyan-400 hover:text-cyan-300 rounded px-2 py-1 transition-all duration-200 shadow-[0_0_10px_rgba(6,182,212,0.15)] hover:shadow-[0_0_15px_rgba(6,182,212,0.3)]">
+                    <svg className="w-3.5 h-3.5 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4"></path></svg>
+                    <span className="text-[10px] font-bold uppercase tracking-wider">Repo</span>
+                  </button>
                   <button onClick={() => setShowClearRepoModal(true)} className="text-red-500/70 hover:text-red-400 hover:drop-shadow-[0_0_12px_rgba(248,113,113,1)] transition-all duration-200 ml-1" title="Clear Repository">
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                   </button>
@@ -647,20 +645,18 @@ export default function Home() {
                         <p className="text-gray-500 text-[12px] m-0 leading-none">Add a codebase to begin analysis.</p>
                       </div>
                       
-                      <ElectricBorder color="#06b6d4" borderRadius={9999} chaos={0.03} displacement={5} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <button 
-                          onClick={() => setShowIngestModal(true)} 
-                          className="group relative overflow-hidden rounded-full font-bold text-[12px] bg-cyan-500/10 text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/20 transition-all duration-300 flex items-center justify-center px-[24px] py-[10px] border border-cyan-500/30 shadow-[0_0_15px_rgba(6,182,212,0.15)] hover:shadow-[0_0_25px_rgba(6,182,212,0.3)] active:scale-[0.95]"
-                        >
-                          <span className="flex items-center gap-[8px] relative z-10">
-                            <svg className="w-[14px] h-[14px] transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
-                            </svg>
-                            Add Repository
-                          </span>
-                          <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-cyan-400/10 to-transparent group-hover:animate-[shimmer_1.5s_infinite]" />
-                        </button>
-                      </ElectricBorder>
+                      <button 
+                        onClick={() => setShowIngestModal(true)} 
+                        className="group relative overflow-hidden rounded-full font-bold text-[12px] bg-cyan-500/10 text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/20 transition-all duration-300 flex items-center justify-center px-[24px] py-[10px] border border-cyan-500/30 shadow-[0_0_15px_rgba(6,182,212,0.15)] hover:shadow-[0_0_25px_rgba(6,182,212,0.3)] active:scale-[0.95]"
+                      >
+                        <span className="flex items-center gap-[8px] relative z-10">
+                          <svg className="w-[14px] h-[14px] transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+                          </svg>
+                          Add Repository
+                        </span>
+                        <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-cyan-400/10 to-transparent group-hover:animate-[shimmer_1.5s_infinite]" />
+                      </button>
                     </div>
                   </div>
                 ) : (
@@ -692,7 +688,6 @@ export default function Home() {
                 <p className="text-cyan-300/80 text-[10px] uppercase tracking-[0.3em] font-semibold">GraphRAG Engine (Mock Mode)</p>
                 <h2 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-indigo-400 mt-1">Repository Intelligence</h2>
                   <div className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col items-end gap-2">
-                    <ElectricBorder color="#6366f1" borderRadius={999} chaos={0.03} displacement={8} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
                       <button 
                         onClick={startNewChat}
                         className="px-4 py-2 rounded-full bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 text-indigo-100 transition-all duration-200 hover:shadow-[0_0_15px_rgba(99,102,241,0.4)] active:scale-95 flex items-center justify-center gap-2 text-sm font-medium relative z-10 whitespace-nowrap"
@@ -701,20 +696,17 @@ export default function Home() {
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>
                         <span className="hidden sm:inline">New Chat</span>
                       </button>
-                    </ElectricBorder>
 
                     <div className="flex items-center gap-4 mt-2">
                       {/* API Key Settings Button */}
-                      <ElectricBorder color="#06b6d4" borderRadius={8} chaos={0.03} displacement={4} style={{ display: 'inline-flex' }}>
-                        <button 
-                          onClick={() => setShowApiKeyModal(true)}
-                          className="flex items-center gap-1.5 cursor-pointer group px-3 py-1.5 bg-black/40 hover:bg-white/10 border border-transparent rounded-lg transition-colors relative z-10"
-                          title="Set API Key"
-                        >
-                          <svg className={`w-3.5 h-3.5 transition-colors ${apiKey ? 'text-emerald-400' : 'text-gray-400 group-hover:text-cyan-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path></svg>
-                          <span className={`text-[10px] font-bold uppercase tracking-wider transition-colors ${apiKey ? 'text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.8)]' : 'text-gray-500 group-hover:text-cyan-400'}`}>API Key</span>
-                        </button>
-                      </ElectricBorder>
+                      <button 
+                        onClick={() => setShowApiKeyModal(true)}
+                        className="flex items-center gap-1.5 cursor-pointer group px-3 py-1.5 bg-black/40 hover:bg-white/10 border border-white/5 hover:border-white/20 rounded-lg transition-colors relative z-10"
+                        title="Set API Key"
+                      >
+                        <svg className={`w-3.5 h-3.5 transition-colors ${apiKey ? 'text-emerald-400' : 'text-gray-400 group-hover:text-cyan-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path></svg>
+                        <span className={`text-[10px] font-bold uppercase tracking-wider transition-colors ${apiKey ? 'text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.8)]' : 'text-gray-500 group-hover:text-cyan-400'}`}>API Key</span>
+                      </button>
 
                       {/* Beginner Mode Toggle */}
                       <label className="flex items-center gap-2 cursor-pointer group" title="Explain like I'm a beginner">
