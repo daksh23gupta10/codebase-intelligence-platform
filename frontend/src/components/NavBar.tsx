@@ -38,31 +38,25 @@ export default function NavBar({ onSignOut }: NavBarProps) {
         </span>
       </div>
       <div className="flex items-center gap-8 text-sm font-medium">
-        <ElectricBorder color="#06b6d4" borderRadius={999} chaos={0.03} displacement={8} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-          <a href="/" className={getLinkClass('/')}>Home</a>
-        </ElectricBorder>
-        <ElectricBorder color="#06b6d4" borderRadius={999} chaos={0.03} displacement={8} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-          <a href="/tree" className={getLinkClass('/tree')}>Repo Tree</a>
-        </ElectricBorder>
-        <ElectricBorder color="#06b6d4" borderRadius={999} chaos={0.03} displacement={8} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-          <a href="/about" className={getLinkClass('/about')}>About Us</a>
-        </ElectricBorder>
+        <a href="/" className={getLinkClass('/')}>Home</a>
+        <a href="/tree" className={getLinkClass('/tree')}>Repo Tree</a>
+        <a href="/about" className={getLinkClass('/about')}>About Us</a>
         <div className="w-px h-8 bg-cyan-400 rounded-full shadow-[0_0_12px_rgba(34,211,238,0.8)]" />
-        <ElectricBorder color="#06b6d4" borderRadius={999} chaos={0.03} displacement={8} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-          <button 
-            onClick={() => {
-              if (onSignOut) {
-                onSignOut();
-              } else {
-                localStorage.removeItem('loginStatus');
-                window.location.href = '/';
-              }
-            }} 
-            className="px-6 py-2 rounded-full bg-black/40 hover:bg-white/10 border border-white/10 text-white transition-all duration-200 hover:shadow-[0_0_15px_rgba(6,182,212,0.3)] hover:-translate-y-0.5 active:scale-95 active:translate-y-0 relative z-10 font-medium whitespace-nowrap flex items-center justify-center"
-          >
-            Sign Out
-          </button>
-        </ElectricBorder>
+        <button 
+          onClick={() => {
+            if (onSignOut) {
+              onSignOut();
+            } else {
+              localStorage.removeItem('loginStatus');
+              window.location.href = '/';
+            }
+          }} 
+          className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 hover:text-white border border-rose-500/20 transition-all duration-300 hover:shadow-[0_0_20px_rgba(244,63,94,0.3)] active:scale-95 group relative overflow-hidden"
+        >
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-[200%] group-hover:translate-x-[200%] transition-transform duration-1000 ease-in-out" />
+          <svg className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+          <span className="font-semibold tracking-wide">Sign Out</span>
+        </button>
       </div>
     </nav>
   );
